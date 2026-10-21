@@ -1,0 +1,472 @@
+<title>Sorteio da Liga</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,800&family=Figtree:wght@400;500;600&family=JetBrains+Mono:wght@400;600&display=swap">
+<style>
+/* Layout: duas colunas de trabalho (entrada+regras | conferência+sorteio), passos numerados porque é uma sequência real */
+:root{
+  --bg:#F2F5F4; --surface:#FFFFFF; --ink:#13221F; --muted:#5B6B67; --line:#D5DEDB;
+  --accent:#0E7466; --accent-ink:#FFFFFF; --accent-soft:#DCEFEA;
+  --gold:#B87A00; --gold-soft:#FBEFD2;
+  --ok:#1E7A3C; --ok-soft:#DFF2E5; --bad:#B3261E; --bad-soft:#FBE3E1;
+  --f-display:"Bricolage Grotesque", "Segoe UI", system-ui, sans-serif;
+  --f-body:"Figtree", "Segoe UI", system-ui, sans-serif;
+  --f-mono:"JetBrains Mono", ui-monospace, Menlo, Consolas, monospace;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#0E1513; --surface:#16201D; --ink:#E4EEEB; --muted:#93A6A1; --line:#2A3834;
+  --accent:#3FC3AD; --accent-ink:#06211C; --accent-soft:#163A33;
+  --gold:#F0B43C; --gold-soft:#3A2E12;
+  --ok:#5DD18A; --ok-soft:#173326; --bad:#FF8A80; --bad-soft:#3D1C1A; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#0E1513; --surface:#16201D; --ink:#E4EEEB; --muted:#93A6A1; --line:#2A3834;
+  --accent:#3FC3AD; --accent-ink:#06211C; --accent-soft:#163A33;
+  --gold:#F0B43C; --gold-soft:#3A2E12;
+  --ok:#5DD18A; --ok-soft:#173326; --bad:#FF8A80; --bad-soft:#3D1C1A; color-scheme:dark}
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--ink);font-family:var(--f-body);font-size:15px;line-height:1.5}
+.wrap{max-width:1180px;margin:0 auto;padding-block:28px 60px;padding-left:max(16px, env(safe-area-inset-left, 0px));padding-right:max(16px, env(safe-area-inset-right, 0px))}
+header{display:flex;flex-wrap:wrap;align-items:end;justify-content:space-between;gap:12px;margin-bottom:24px}
+h1{font-family:var(--f-display);font-weight:800;font-size:clamp(28px,4vw,40px);line-height:1.05;margin:0;letter-spacing:-.01em;text-wrap:balance}
+h1 span{color:var(--accent)}
+.sub{color:var(--muted);margin:6px 0 0;max-width:62ch}
+.grid{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.1fr);gap:20px;align-items:start}
+@media (max-width:860px){.grid{grid-template-columns:minmax(0,1fr)}}
+.col{display:flex;flex-direction:column;gap:20px;min-width:0}
+section.step{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:20px;min-width:0}
+.step h2{font-family:var(--f-display);font-weight:600;font-size:19px;margin:0 0 4px;display:flex;align-items:center;gap:10px}
+.step h2 b{font-family:var(--f-mono);font-size:12px;font-weight:600;background:var(--accent-soft);color:var(--accent);border-radius:4px;padding:2px 7px}
+.hint{color:var(--muted);font-size:13.5px;margin:0 0 14px;max-width:65ch}
+.hint code{font-family:var(--f-mono);font-size:12.5px}
+textarea,input[type=text],input[type=number],select{width:100%;font:inherit;color:var(--ink);background:var(--bg);border:1px solid var(--line);border-radius:6px;padding:9px 11px}
+textarea{font-family:var(--f-mono);font-size:13px;min-height:220px;resize:vertical;line-height:1.45}
+textarea:focus,input:focus,select:focus,button:focus-visible,a:focus-visible{outline:2px solid var(--accent);outline-offset:1px}
+.row{display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin-top:10px}
+.fields{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px}
+@media (max-width:520px){.fields{grid-template-columns:minmax(0,1fr)}}
+.fields .full{grid-column:1/-1}
+label.f{display:flex;flex-direction:column;gap:5px;font-size:13px;font-weight:600}
+label.f small{font-weight:400;color:var(--muted)}
+.check{display:flex;gap:8px;align-items:flex-start;font-size:14px}
+.check input{margin-top:3px;accent-color:var(--accent)}
+.seg{display:flex;border:1px solid var(--line);border-radius:6px;overflow:hidden}
+.seg label{flex:1;text-align:center;padding:8px 6px;cursor:pointer;font-weight:500;font-size:13.5px}
+.seg input{position:absolute;opacity:0;pointer-events:none}
+.seg label:has(input:checked){background:var(--accent);color:var(--accent-ink)}
+.seg label:has(input:focus-visible){outline:2px solid var(--accent);outline-offset:-2px}
+button{font:inherit;font-weight:600;border-radius:6px;border:1px solid var(--line);background:var(--surface);color:var(--ink);padding:9px 14px;cursor:pointer}
+button:hover{border-color:var(--accent)}
+button.primary{background:var(--accent);color:var(--accent-ink);border-color:var(--accent)}
+button.primary:hover{filter:brightness(1.08)}
+button.big{font-family:var(--f-display);font-size:18px;padding:13px 22px}
+button:disabled{opacity:.45;cursor:not-allowed}
+.filelbl{font-size:13.5px;color:var(--accent);cursor:pointer;font-weight:600;text-decoration:underline;text-underline-offset:3px}
+.filelbl input{display:none}
+.stats{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px;margin-bottom:14px}
+@media (max-width:520px){.stats{grid-template-columns:repeat(2,minmax(0,1fr))}}
+.stat{border:1px solid var(--line);border-radius:8px;padding:9px 11px}
+.stat .n{font-family:var(--f-display);font-weight:800;font-size:24px;font-variant-numeric:tabular-nums;line-height:1.1}
+.stat .l{font-size:12px;color:var(--muted);text-transform:uppercase;letter-spacing:.05em}
+.stat.ok .n{color:var(--ok)} .stat.bad .n{color:var(--bad)}
+.tabs{display:flex;gap:6px;margin-bottom:10px;flex-wrap:wrap}
+.tabs button{padding:5px 11px;font-size:13px;font-weight:500}
+.tabs button[aria-pressed=true]{background:var(--ink);color:var(--bg);border-color:var(--ink)}
+.list{max-height:360px;overflow:auto;border:1px solid var(--line);border-radius:8px}
+table{width:100%;border-collapse:collapse;font-size:13.5px}
+th{position:sticky;top:0;background:var(--surface);text-align:left;font-size:11.5px;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);padding:8px 10px;border-bottom:1px solid var(--line);font-weight:600}
+td{padding:8px 10px;border-bottom:1px solid var(--line);vertical-align:top}
+tr:last-child td{border-bottom:0}
+.u{font-family:var(--f-mono);font-weight:600;font-size:13px;word-break:break-all}
+.pill{display:inline-block;font-size:11.5px;font-weight:600;border-radius:999px;padding:2px 8px;white-space:nowrap}
+.pill.ok{background:var(--ok-soft);color:var(--ok)} .pill.bad{background:var(--bad-soft);color:var(--bad)}
+.why{color:var(--muted);font-size:12.5px;margin-top:2px}
+.tags{font-family:var(--f-mono);font-size:12px;color:var(--muted);word-break:break-all}
+.num{font-variant-numeric:tabular-nums;text-align:right}
+.drum{border:2px dashed var(--line);border-radius:10px;padding:22px;text-align:center;margin-bottom:14px;min-height:96px;display:flex;align-items:center;justify-content:center;flex-direction:column;gap:4px}
+.drum .name{font-family:var(--f-mono);font-weight:600;font-size:clamp(20px,3.4vw,28px);word-break:break-all}
+.drum .cap{font-size:12px;color:var(--muted);text-transform:uppercase;letter-spacing:.07em}
+.drum.spin .name{color:var(--muted)}
+.drum.hit{border-color:var(--gold);border-style:solid;background:var(--gold-soft)}
+.drum.hit .name{color:var(--gold)}
+.winners{display:flex;flex-direction:column;gap:10px;margin-top:14px}
+.w{border:1px solid var(--line);border-radius:8px;padding:12px 14px;display:grid;grid-template-columns:auto minmax(0,1fr);gap:4px 12px}
+.w .pos{font-family:var(--f-display);font-weight:800;font-size:22px;color:var(--gold);grid-row:span 3;line-height:1.1;min-width:2ch}
+.w.out{opacity:.55}
+.w.out .pos{color:var(--muted)}
+.w.out .u{text-decoration:line-through}
+.w.okd{border-color:var(--ok)}
+.w .head{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.w a{color:var(--accent);font-size:13px;font-weight:600}
+.w .fol{display:flex;flex-wrap:wrap;gap:6px 14px;font-size:13px}
+.w .acts{display:flex;flex-wrap:wrap;gap:8px}
+.w .acts button{padding:5px 10px;font-size:13px}
+.empty{color:var(--muted);font-size:14px;padding:18px;text-align:center}
+.example{display:inline-block;font-size:11.5px;font-weight:600;background:var(--gold-soft);color:var(--gold);border-radius:4px;padding:2px 7px;margin-left:6px;vertical-align:middle}
+.posts{display:grid;grid-template-columns:repeat(auto-fill,minmax(110px,1fr));gap:8px;margin-top:10px;max-height:330px;overflow:auto}
+.post{display:flex;flex-direction:column;gap:4px;padding:0;text-align:left;font-weight:400;overflow:hidden}
+.post img,.post .noimg{width:100%;aspect-ratio:1;object-fit:cover;background:var(--accent-soft);display:block}
+.post span{font-size:12px;padding:0 8px 8px;color:var(--muted);display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.post b{font-size:12px;padding:0 8px;font-variant-numeric:tabular-nums}
+.post[aria-pressed=true]{outline:2px solid var(--accent);border-color:var(--accent)}
+.toast{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(20px + env(safe-area-inset-bottom, 0px));background:var(--ink);color:var(--bg);padding:9px 16px;border-radius:6px;font-weight:600;font-size:14px}
+.audit{font-family:var(--f-mono);font-size:12px;color:var(--muted);margin-top:10px;word-break:break-all}
+details summary{cursor:pointer;font-size:13.5px;font-weight:600;color:var(--accent)}
+details ol{margin:8px 0 0;padding-left:20px;font-size:13.5px;color:var(--muted)}
+details li{margin-bottom:4px}
+@media (prefers-reduced-motion: reduce){*{transition:none!important;animation:none!important}}
+</style>
+
+<div class="wrap">
+  <header>
+    <div>
+      <h1>Sorteio <span>da Liga</span></h1>
+      <p class="sub">Cole os comentários do post, defina as regras e sorteie só entre quem participou certo. Tudo roda no seu navegador; nada é enviado a lugar nenhum.</p>
+    </div>
+  </header>
+
+  <div class="grid">
+    <div class="col">
+      <section class="step" aria-labelledby="s1">
+        <h2 id="s1"><b>1</b> Comentários do post <span class="example" id="exTag">exemplo</span></h2>
+        <div class="tabs" role="group" aria-label="Origem dos comentários">
+          <button type="button" data-src="ig" aria-pressed="true">Puxar do Instagram</button>
+          <button type="button" data-src="paste" aria-pressed="false">Colar manualmente</button>
+        </div>
+        <div id="srcIg">
+          <p class="hint">Use o token de acesso da conta da liga (o guia explica como gerar uma vez). Ele fica só neste navegador.</p>
+          <div class="row" style="margin-top:0">
+            <input type="text" id="token" placeholder="Cole o token de acesso (começa com IG…)" autocomplete="off" style="flex:1;min-width:200px;font-family:var(--f-mono);font-size:13px">
+            <button type="button" class="primary" id="connect">Ver posts</button>
+          </div>
+          <label class="check" style="margin-top:8px"><input type="checkbox" id="remember"> Lembrar o token neste computador</label>
+          <div class="row"><input type="text" id="postLink" placeholder="ou cole o link do post: instagram.com/p/…" style="flex:1;min-width:200px"><button type="button" id="byLink">Puxar deste link</button></div>
+          <div id="igStatus" class="why" style="margin-top:10px"></div>
+          <div id="posts" class="posts"></div>
+          <label class="check" style="margin-top:10px"><input type="checkbox" id="withReplies"> Contar também respostas dentro dos comentários</label>
+        </div>
+        <div id="srcPaste" hidden>
+        <p class="hint">Cole aqui os comentários. Funciona com texto copiado direto do Instagram, com uma linha por comentário (<code>usuario: texto @amigo @amiga</code>) ou com CSV de extensões que exportam comentários (colunas de usuário e texto).</p>
+        <textarea id="raw" spellcheck="false" aria-label="Comentários colados"></textarea>
+        <div class="row">
+          <label class="filelbl">Importar arquivo CSV/TXT<input type="file" id="file" accept=".csv,.txt,.tsv,.json"></label>
+          <button type="button" id="clear">Limpar</button>
+        </div>
+        <details style="margin-top:12px">
+          <summary>Como tirar os comentários do Instagram</summary>
+          <ol>
+            <li>Abra o post no computador (instagram.com) e role os comentários até o fim, clicando no “+” para carregar todos.</li>
+            <li>Selecione a área dos comentários, copie (Ctrl+C) e cole aqui. O site ignora “Responder”, “curtidas” e horários.</li>
+            <li>Post com centenas de comentários: use uma extensão de exportação de comentários do Chrome e importe o CSV.</li>
+          </ol>
+        </details>
+        </div>
+      </section>
+
+      <section class="step" aria-labelledby="s2">
+        <h2 id="s2"><b>2</b> Regras</h2>
+        <p class="hint">O que o site confere sozinho: marcações e palavra obrigatória. Seguir perfis o Instagram não deixa conferir de fora, então isso é checado no ganhador, na etapa 4.</p>
+        <div class="fields">
+          <label class="f">Perfil da liga <small>não pode participar</small><input type="text" id="owner" placeholder="@ligadecardio"></label>
+          <label class="f">Marcações mínimas <small>pessoas diferentes por comentário</small><input type="number" id="minTags" min="0" max="20" value="2"></label>
+          <label class="f full">Perfis que precisam ser seguidos <small>separe por espaço ou vírgula</small><input type="text" id="follow" placeholder="@ligadecardio @patrocinador"></label>
+          <label class="check full"><input type="checkbox" id="countFollow"> Marcar esses perfis também conta como marcação</label>
+          <label class="f">Palavra obrigatória <small>opcional</small><input type="text" id="keyword" placeholder="ex.: quero"></label>
+          <label class="f">Excluir usuários <small>organizadores, membros…</small><input type="text" id="exclude" placeholder="@fulano @ciclano"></label>
+          <div class="f full">Chances de cada pessoa
+            <div class="seg" role="radiogroup">
+              <label><input type="radio" name="mode" value="pessoa" checked> 1 por pessoa</label>
+              <label><input type="radio" name="mode" value="comentario"> 1 por comentário válido</label>
+            </div>
+            <small style="font-weight:400;color:var(--muted)">Por comentário: cada comentário válido com marcações diferentes vale mais uma chance.</small>
+          </div>
+          <label class="f">Quantos ganhadores<input type="number" id="nWin" min="1" max="50" value="1"></label>
+        </div>
+      </section>
+    </div>
+
+    <div class="col">
+      <section class="step" aria-labelledby="s3">
+        <h2 id="s3"><b>3</b> Conferência</h2>
+        <div class="stats">
+          <div class="stat"><div class="n" id="stC">0</div><div class="l">Comentários</div></div>
+          <div class="stat"><div class="n" id="stP">0</div><div class="l">Pessoas</div></div>
+          <div class="stat ok"><div class="n" id="stV">0</div><div class="l">Válidas</div></div>
+          <div class="stat"><div class="n" id="stT">0</div><div class="l">Chances</div></div>
+        </div>
+        <div class="tabs" role="group" aria-label="Filtrar">
+          <button type="button" data-f="all" aria-pressed="true">Todos</button>
+          <button type="button" data-f="ok" aria-pressed="false">Válidos</button>
+          <button type="button" data-f="bad" aria-pressed="false">Fora da regra</button>
+        </div>
+        <div class="list"><table>
+          <thead><tr><th>Pessoa</th><th>Situação</th><th class="num">Chances</th></tr></thead>
+          <tbody id="tbody"></tbody>
+        </table></div>
+      </section>
+
+      <section class="step" aria-labelledby="s4">
+        <h2 id="s4"><b>4</b> Sorteio</h2>
+        <div class="drum" id="drum"><div class="cap" id="drumCap">Pronto para sortear</div><div class="name" id="drumName">—</div></div>
+        <div class="row" style="margin-top:0">
+          <button type="button" class="primary big" id="draw">Sortear</button>
+          <button type="button" id="copy" disabled>Copiar resultado</button>
+          <button type="button" id="reset" disabled>Recomeçar</button>
+        </div>
+        <div class="winners" id="winners"></div>
+        <div class="audit" id="audit"></div>
+      </section>
+    </div>
+  </div>
+</div>
+<div class="toast" id="toast" hidden></div>
+
+<script>
+const SAMPLE = `marina.saude: Quero muito! @joao.pedro @bia_lima
+caio.rezende: @lucas.m @lucas.m
+bia_lima: @marina.saude @rafa.costa
+dr.henrique: participando @ana_clara @gui.santos @tati.r
+ana_clara: @tati.r
+rafa.costa: Eu quero @ligadecardio @bia_lima
+tati.r: @gui.santos @ana_clara
+ligadecardio: Boa sorte a todos!
+lucas.m: amei @caio.rezende @dr.henrique
+marina.saude: mais uma chance @tati.r @lucas.m
+gui.santos
+
+@joao.pedro @caio.rezende
+2 h
+Responder
+joao.pedro: @rafa.costa @bia_lima`;
+
+const $ = s => document.querySelector(s);
+const store = {get(k){try{return localStorage.getItem(k)}catch(e){return null}}, set(k,v){try{localStorage.setItem(k,v)}catch(e){}}};
+const UREG = /^@?([A-Za-z0-9._]{1,30})$/;
+const NOISE = /^(responder|reply|ver tradu[cç][aã]o|see translation|curtir|like|editado|edited|fixado|pinned|autor|author|criador|creator|verificado|verified|seguir|follow|ver respostas.*|view replies.*|view all \d+ replies|ocultar respostas.*|hide replies|[—–-]+.*|\d+[.,]?\d*\s*(mil\s*)?(curtidas?|likes?|respostas?|replies)|\d+\s*(s|seg|min|m|h|d|sem|w|a|y)|h[aá] \d+.*|\d+\s*\w+ ago|.*\bago)$/i;
+let parsed = [], people = [], tickets = [], winners = [], filter = 'all', drawing = false;
+
+function norm(u){return u.replace(/^@/,'').replace(/\.+$/,'').toLowerCase()}
+function list(s){return [...new Set((s||'').split(/[\s,;]+/).map(norm).filter(Boolean))]}
+
+function parseCSV(text){
+  const rows=[]; let row=[], cur='', q=false;
+  const sep = (text.split('\n')[0].match(/;/g)||[]).length > (text.split('\n')[0].match(/,/g)||[]).length ? ';' : (text.includes('\t') ? '\t' : ',');
+  for(let i=0;i<text.length;i++){const c=text[i];
+    if(q){ if(c=='"'&&text[i+1]=='"'){cur+='"';i++} else if(c=='"') q=false; else cur+=c }
+    else if(c=='"') q=true; else if(c==sep){row.push(cur);cur=''} else if(c=='\n'){row.push(cur);rows.push(row);row=[];cur=''} else if(c!='\r') cur+=c }
+  if(cur||row.length){row.push(cur);rows.push(row)}
+  return rows;
+}
+function tryStructured(text){
+  const t=text.trim();
+  if(t.startsWith('[')){ try{const arr=JSON.parse(t); return arr.map(o=>({user:norm(String(o.username||o.user||o.ownerUsername||o.usuario||(o.owner&&o.owner.username)||'')), text:String(o.text||o.comment||o.comentario||'')})).filter(c=>c.user)}catch(e){} }
+  const first=t.split('\n')[0].toLowerCase();
+  if(/(user|usuario|usuário|username|perfil|autor)/.test(first) && /(text|coment|comment|mensagem)/.test(first)){
+    const rows=parseCSV(t), h=rows[0].map(x=>x.toLowerCase().trim());
+    const ui=h.findIndex(x=>/(username|user|usuario|usuário|perfil|autor)/.test(x));
+    const ti=h.findIndex(x=>/(text|coment|comment|mensagem)/.test(x));
+    if(ui>-1&&ti>-1) return rows.slice(1).map(r=>({user:norm(r[ui]||''),text:r[ti]||''})).filter(c=>c.user);
+  }
+  return null;
+}
+function parse(text){
+  const s=tryStructured(text); if(s) return s;
+  const out=[]; let pending=null;
+  for(let line of text.split(/\r?\n/)){
+    line=line.trim(); if(!line||NOISE.test(line)) continue;
+    let m=line.match(/^(?:foto do perfil de|profile picture of)\s+@?([A-Za-z0-9._]+)/i) || line.match(/^@?([A-Za-z0-9._]+)['’]s profile picture$/i);
+    if(m){pending=norm(m[1]);continue}
+    if(UREG.test(line) && !line.startsWith('@')){
+      if(pending===null){pending=norm(line);continue}
+      out.push({user:pending,text:line}); pending=null; continue;
+    }
+    if(pending!==null){out.push({user:pending,text:line}); pending=null; continue}
+    m=line.match(/^@?([A-Za-z0-9._]{1,30})\s*[:：]\s*(.*)$/) || line.match(/^([A-Za-z0-9._]{1,30})\s+(.*)$/);
+    if(m && !line.startsWith('@')){out.push({user:norm(m[1]),text:m[2]});continue}
+    if(out.length) out[out.length-1].text+=' '+line;
+  }
+  return out;
+}
+
+function evaluate(){
+  const owner=norm($('#owner').value||''), follow=list($('#follow').value), excl=new Set(list($('#exclude').value));
+  if(owner) excl.add(owner);
+  const minT=Math.max(0,parseInt($('#minTags').value)||0), kw=$('#keyword').value.trim().toLowerCase();
+  const countFollow=$('#countFollow').checked, mode=document.querySelector('input[name=mode]:checked').value;
+  const map=new Map();
+  for(const c of parsed){
+    const ments=[...new Set([...(c.text.matchAll(/@([A-Za-z0-9._]{1,30})/g))].map(x=>norm(x[1])))];
+    const valid=ments.filter(u=>u!==c.user && !(owner&&u===owner&&!countFollow) && (countFollow||!follow.includes(u)));
+    const reasons=[];
+    if(valid.length<minT) reasons.push(valid.length===0?'nenhuma marcação válida':`só ${valid.length} marcação válida${valid.length>1?'s':''} (precisa ${minT})`);
+    if(kw && !c.text.toLowerCase().includes(kw)) reasons.push(`sem a palavra “${kw}”`);
+    if(!map.has(c.user)) map.set(c.user,{user:c.user,comments:[]});
+    map.get(c.user).comments.push({text:c.text,tags:valid,ok:!reasons.length,reasons});
+  }
+  people=[...map.values()].map(p=>{
+    if(excl.has(p.user)) return {...p,ok:false,why:'excluído (organização)',chances:0,tags:[]};
+    const good=p.comments.filter(c=>c.ok);
+    const sets=new Set(good.map(c=>[...c.tags].sort().join(' ')));
+    const chances=good.length?(mode==='pessoa'?1:sets.size):0;
+    const why=good.length?'':(p.comments[0].reasons.join('; '));
+    const tags=[...new Set(good.flatMap(c=>c.tags))];
+    return {...p,ok:!!good.length,why,chances,tags};
+  }).sort((a,b)=>(b.ok-a.ok)||a.user.localeCompare(b.user));
+  tickets=people.flatMap(p=>Array(p.chances).fill(p.user));
+  render();
+}
+
+function render(){
+  $('#stC').textContent=parsed.length; $('#stP').textContent=people.length;
+  $('#stV').textContent=people.filter(p=>p.ok).length; $('#stT').textContent=tickets.length;
+  const rows=people.filter(p=>filter==='all'||(filter==='ok'?p.ok:!p.ok));
+  $('#tbody').innerHTML=rows.length?rows.map(p=>`<tr><td><div class="u">@${p.user}</div>${p.tags.length?`<div class="tags">${p.tags.map(t=>'@'+t).join(' ')}</div>`:''}</td>
+    <td><span class="pill ${p.ok?'ok':'bad'}">${p.ok?'Válido':'Fora da regra'}</span>${p.why?`<div class="why">${esc(p.why)}</div>`:''}${p.comments.length>1?`<div class="why">${p.comments.length} comentários</div>`:''}</td>
+    <td class="num">${p.chances}</td></tr>`).join(''):`<tr><td colspan="3" class="empty">${parsed.length?'Ninguém neste filtro.':'Cole os comentários na etapa 1.'}</td></tr>`;
+  renderWinners();
+}
+function esc(s){return s.replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]))}
+
+function rand(n){const a=new Uint32Array(1), lim=Math.floor(0xFFFFFFFF/n)*n; let x; do{crypto.getRandomValues(a);x=a[0]}while(x>=lim); return x%n}
+function pickOne(){
+  const taken=new Set(winners.map(w=>w.user));
+  const pool=tickets.filter(u=>!taken.has(u));
+  return pool.length?pool[rand(pool.length)]:null;
+}
+async function spin(final){
+  const drum=$('#drum'), name=$('#drumName'), cap=$('#drumCap');
+  drum.classList.remove('hit'); drum.classList.add('spin'); cap.textContent='Sorteando…';
+  const reduce=matchMedia('(prefers-reduced-motion: reduce)').matches;
+  const uniq=[...new Set(tickets)];
+  if(!reduce){ let d=40; for(let i=0;i<22;i++){ name.textContent='@'+uniq[rand(uniq.length)]; await new Promise(r=>setTimeout(r,d)); d*=1.11; } }
+  name.textContent='@'+final; drum.classList.remove('spin'); drum.classList.add('hit');
+}
+async function drawN(n){
+  if(drawing) return; drawing=true; setBtns();
+  for(let i=0;i<n;i++){
+    const u=pickOne(); if(!u){toast('Não há mais participantes válidos para sortear.');break}
+    await spin(u);
+    const pos=winners.filter(w=>w.status!=='out').length+1;
+    winners.push({user:u,status:'pend',checks:{},at:new Date(),pos});
+    $('#drumCap').textContent=`${pos}º sorteado`;
+    renderWinners();
+    if(i<n-1) await new Promise(r=>setTimeout(r,700));
+  }
+  drawing=false; setBtns();
+}
+function renderWinners(){
+  const follow=list($('#follow').value);
+  $('#winners').innerHTML=winners.map((w,i)=>`<div class="w ${w.status==='out'?'out':''} ${w.status==='ok'?'okd':''}">
+    <div class="pos">${w.status==='out'?'×':w.pos+'º'}</div>
+    <div class="head"><span class="u">@${w.user}</span>${w.status==='ok'?'<span class="pill ok">Confirmado</span>':w.status==='out'?'<span class="pill bad">Desclassificado</span>':''}<a href="https://www.instagram.com/${w.user}/" target="_blank" rel="noopener">abrir perfil ↗</a></div>
+    ${w.status==='pend'?`${follow.length?`<div class="fol">${follow.map(f=>`<label class="check"><input type="checkbox" data-i="${i}" data-f="${f}" ${w.checks[f]?'checked':''}> segue @${f}</label>`).join('')}</div>`:''}
+    <div class="acts"><button type="button" data-ok="${i}">Confirmar</button><button type="button" data-out="${i}">Desclassificar e sortear outro</button></div>`:''}
+  </div>`).join('');
+  setBtns();
+}
+function setBtns(){
+  const active=winners.filter(w=>w.status!=='out').length;
+  $('#draw').disabled=drawing||!tickets.length;
+  $('#draw').textContent=active?'Sortear mais um':(+$('#nWin').value>1?`Sortear ${$('#nWin').value} ganhadores`:'Sortear');
+  $('#copy').disabled=drawing||!active; $('#reset').disabled=drawing||!winners.length;
+  $('#audit').textContent=winners.length?`Sorteio feito em ${winners[0].at.toLocaleString('pt-BR')} entre ${new Set(tickets).size} pessoas válidas (${tickets.length} chances), com gerador aleatório criptográfico do navegador.`:'';
+}
+
+$('#winners').addEventListener('click',e=>{
+  const ok=e.target.dataset.ok, out=e.target.dataset.out;
+  if(ok!==undefined){winners[ok].status='ok';renderWinners()}
+  if(out!==undefined){
+    const w=winners[out]; w.status='out';
+    winners.filter(x=>x.status!=='out').forEach((x,k)=>x.pos=k+1);
+    renderWinners(); drawN(1);
+  }
+});
+$('#winners').addEventListener('change',e=>{const i=e.target.dataset.i; if(i!==undefined) winners[i].checks[e.target.dataset.f]=e.target.checked});
+$('#draw').addEventListener('click',()=>drawN(winners.some(w=>w.status!=='out')?1:Math.max(1,+$('#nWin').value||1)));
+$('#reset').addEventListener('click',()=>{winners=[];$('#drum').classList.remove('hit');$('#drumCap').textContent='Pronto para sortear';$('#drumName').textContent='—';renderWinners()});
+$('#copy').addEventListener('click',async()=>{
+  const ws=winners.filter(w=>w.status!=='out');
+  const txt=`Resultado do sorteio\n\n${ws.map(w=>`${w.pos}º @${w.user}`).join('\n')}\n\nParticiparam ${new Set(tickets).size} pessoas que cumpriram as regras. Parabéns! Chame a gente no direct para combinar a retirada.`;
+  try{await navigator.clipboard.writeText(txt);toast('Resultado copiado')}catch(e){toast('Não deu para copiar. Selecione os nomes manualmente.')}
+});
+document.querySelectorAll('.tabs button[data-f]').forEach(b=>b.addEventListener('click',()=>{filter=b.dataset.f;document.querySelectorAll('.tabs button[data-f]').forEach(x=>x.setAttribute('aria-pressed',x===b));render()}));
+
+// ---------- Instagram (API oficial, conta profissional da liga) ----------
+const API='https://graph.instagram.com';
+function setSrc(s){document.querySelectorAll('.tabs button[data-src]').forEach(x=>x.setAttribute('aria-pressed',x.dataset.src===s));$('#srcIg').hidden=s!=='ig';$('#srcPaste').hidden=s!=='paste';store.set('sorteio.src',s)}
+document.querySelectorAll('.tabs button[data-src]').forEach(b=>b.addEventListener('click',()=>setSrc(b.dataset.src)));
+function igMsg(m,bad){const el=$('#igStatus');el.textContent=m;el.style.color=bad?'var(--bad)':''}
+async function api(urlOrPath){
+  const tok=$('#token').value.trim(); if(!tok) throw new Error('Cole o token de acesso primeiro.');
+  let url=urlOrPath.startsWith('http')?urlOrPath:API+urlOrPath+(urlOrPath.includes('?')?'&':'?')+'access_token='+encodeURIComponent(tok);
+  let r; try{r=await fetch(url)}catch(e){throw new Error('Não consegui falar com o Instagram. Abra a página pelo endereço do GitHub Pages (ou outro site), não pela pré-visualização do Claude.')}
+  const j=await r.json().catch(()=>({}));
+  if(j.error){const c=j.error.code; throw new Error(c===190?'Token inválido ou vencido. Gere um novo no painel da Meta.':(c===10||c===200)?'O token não tem permissão para ler comentários (instagram_business_manage_comments).':'Instagram respondeu: '+j.error.message)}
+  return j;
+}
+const MEDIA_FIELDS='id,caption,media_type,media_url,thumbnail_url,permalink,timestamp,comments_count';
+let mediaCache=[];
+function showPosts(items){
+  $('#posts').innerHTML=items.map((m,i)=>{const img=m.media_type==='VIDEO'?m.thumbnail_url:m.media_url;
+    return `<button type="button" class="post" data-mid="${m.id}" aria-pressed="false">${img?`<img src="${esc(img)}" alt="" loading="lazy">`:'<div class="noimg"></div>'}<b>${m.comments_count??'?'} coment.</b><span>${esc((m.caption||'(sem legenda)').slice(0,90))}</span></button>`}).join('');
+}
+$('#connect').addEventListener('click',async()=>{
+  try{igMsg('Buscando seus posts…');
+    if($('#remember').checked) store.set('sorteio.token',$('#token').value.trim());
+    const j=await api('/me/media?fields='+MEDIA_FIELDS+'&limit=30'); mediaCache=j.data||[];
+    showPosts(mediaCache); igMsg(mediaCache.length?'Clique no post do sorteio.':'Nenhum post encontrado nesta conta.');
+  }catch(e){igMsg(e.message,true)}
+});
+$('#byLink').addEventListener('click',async()=>{
+  const code=($('#postLink').value.match(/\/(?:p|reel|reels|tv)\/([A-Za-z0-9_-]+)/)||[])[1];
+  if(!code){igMsg('Link não reconhecido. Use um link como instagram.com/p/ABC123/.',true);return}
+  try{igMsg('Procurando o post…');
+    let next='/me/media?fields='+MEDIA_FIELDS+'&limit=50', found=null, pages=0;
+    while(next&&!found&&pages<20){const j=await api(next);(j.data||[]).forEach(m=>{if(!found&&m.permalink&&m.permalink.includes('/'+code))found=m});next=j.paging&&j.paging.next;pages++}
+    if(!found){igMsg('Esse post não está na conta deste token. O token precisa ser da conta que publicou o sorteio.',true);return}
+    showPosts([found]); pull(found);
+  }catch(e){igMsg(e.message,true)}
+});
+$('#posts').addEventListener('click',e=>{const b=e.target.closest('.post'); if(!b) return;
+  document.querySelectorAll('.post').forEach(x=>x.setAttribute('aria-pressed',x===b));
+  pull(mediaCache.find(m=>m.id===b.dataset.mid)||{id:b.dataset.mid});
+});
+async function pull(m){
+  try{
+    const reply=$('#withReplies').checked;
+    const f='id,text,username,timestamp'+(reply?',replies{id,text,username,timestamp}':'');
+    let next=`/${m.id}/comments?fields=${encodeURIComponent(f)}&limit=50`, out=[];
+    while(next){
+      igMsg(`Puxando comentários… ${out.length}${m.comments_count?' de ~'+m.comments_count:''}`);
+      const j=await api(next);
+      for(const c of j.data||[]){ if(c.username) out.push({user:norm(c.username),text:c.text||''});
+        if(reply&&c.replies) for(const r of c.replies.data||[]) if(r.username) out.push({user:norm(r.username),text:r.text||''}); }
+      next=j.paging&&j.paging.next;
+    }
+    $('#raw').value=out.map(c=>`${c.user}: ${c.text.replace(/\s*\n+\s*/g,' ')}`).join('\n');
+    onRaw();
+    igMsg(`${out.length} comentários puxados em ${new Date().toLocaleTimeString('pt-BR')}. Eles também ficam na aba “Colar manualmente” para conferência.`);
+  }catch(e){igMsg(e.message,true)}
+}
+$('#remember').addEventListener('change',e=>store.set('sorteio.token',e.target.checked?$('#token').value.trim():''));
+{const tk=store.get('sorteio.token'); if(tk){$('#token').value=tk;$('#remember').checked=true}
+ const sv=store.get('sorteio.src'); setSrc(sv||'ig');}
+$('#clear').addEventListener('click',()=>{$('#raw').value='';onRaw()});
+$('#file').addEventListener('change',e=>{const f=e.target.files[0]; if(!f) return; const r=new FileReader(); r.onload=()=>{$('#raw').value=r.result;onRaw()}; r.readAsText(f)});
+
+let t; function onRaw(){clearTimeout(t);t=setTimeout(()=>{parsed=parse($('#raw').value);$('#exTag').hidden=$('#raw').value!==SAMPLE;store.set('sorteio.raw',$('#raw').value);if(winners.length&&!drawing){winners=[];}evaluate()},200)}
+$('#raw').addEventListener('input',onRaw);
+const ids=['owner','minTags','follow','countFollow','keyword','exclude','nWin'];
+ids.forEach(id=>{const el=$('#'+id); el.addEventListener(el.type==='checkbox'?'change':'input',()=>{store.set('sorteio.'+id,el.type==='checkbox'?el.checked:el.value);evaluate()})});
+document.querySelectorAll('input[name=mode]').forEach(r=>r.addEventListener('change',()=>{store.set('sorteio.mode',r.value);evaluate()}));
+
+let t2; function toast(m){const el=$('#toast');el.textContent=m;el.hidden=false;clearTimeout(t2);t2=setTimeout(()=>el.hidden=true,2400)}
+
+// estado inicial: exemplo marcado, ou o que a pessoa deixou da última vez
+const savedRaw=store.get('sorteio.raw');
+$('#raw').value=savedRaw!=null?savedRaw:SAMPLE;
+const defaults={owner:'@ligadecardio',follow:'@ligadecardio @patrocinador.med'};
+ids.forEach(id=>{const v=store.get('sorteio.'+id), el=$('#'+id); if(v!=null){el.type==='checkbox'?el.checked=v==='true':el.value=v} else if(defaults[id]&&savedRaw==null) el.value=defaults[id]});
+const m=store.get('sorteio.mode'); if(m){const r=document.querySelector(`input[name=mode][value="${m}"]`); if(r) r.checked=true}
+$('#exTag').hidden=$('#raw').value!==SAMPLE;
+parsed=parse($('#raw').value); evaluate();
+</script>

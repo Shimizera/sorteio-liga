@@ -135,7 +135,8 @@ details li{margin-bottom:4px}
         <div id="srcIg">
           <p class="hint">Use o token de acesso da conta da liga (o guia explica como gerar uma vez). Ele fica só neste navegador.</p>
           <div class="row" style="margin-top:0">
-            <input type="text" id="token" placeholder="Cole o token de acesso (começa com IG…)" autocomplete="off" style="flex:1;min-width:200px;font-family:var(--f-mono);font-size:13px">
+            <input type="password" id="token" placeholder="Cole o token de acesso (começa com IG…)" autocomplete="off" spellcheck="false" style="flex:1;min-width:200px;font-family:var(--f-mono);font-size:13px">
+            <button type="button" id="showTok" aria-pressed="false">Mostrar</button>
             <button type="button" class="primary" id="connect">Ver posts</button>
           </div>
           <label class="check" style="margin-top:8px"><input type="checkbox" id="remember"> Lembrar o token neste computador</label>
@@ -472,6 +473,7 @@ async function pull(m){
     igMsg(`${out.length} comentários puxados em ${new Date().toLocaleTimeString('pt-BR')}. Eles também ficam na aba “Colar manualmente” para conferência.`);
   }catch(e){igMsg(e.message,true)}
 }
+$('#showTok').addEventListener('click',e=>{const t=$('#token'),show=t.type==='password';t.type=show?'text':'password';e.target.textContent=show?'Ocultar':'Mostrar';e.target.setAttribute('aria-pressed',show);if(show)setTimeout(()=>{if(t.type==='text'){t.type='password';e.target.textContent='Mostrar';e.target.setAttribute('aria-pressed',false)}},10000)});
 $('#remember').addEventListener('change',e=>store.set('sorteio.token',e.target.checked?$('#token').value.trim():''));
 {const tk=store.get('sorteio.token'); if(tk){$('#token').value=tk;$('#remember').checked=true}
  const sv=store.get('sorteio.src'); setSrc(sv||'ig');}

@@ -142,6 +142,7 @@ details li{margin-bottom:4px}
           <div class="row"><input type="text" id="postLink" placeholder="ou cole o link do post: instagram.com/p/…" style="flex:1;min-width:200px"><button type="button" id="byLink">Puxar deste link</button></div>
           <div id="igStatus" class="why" style="margin-top:10px"></div>
           <div id="posts" class="posts"></div>
+          <div id="diag" hidden style="margin-top:10px"><div class="why">Diagnóstico (resposta do Instagram, sem o token):</div><pre id="diagTxt" style="font-family:var(--f-mono);font-size:11.5px;background:var(--bg);border:1px solid var(--line);border-radius:6px;padding:8px;max-height:180px;overflow:auto;white-space:pre-wrap;word-break:break-all;margin:4px 0 0"></pre></div>
           <label class="check" style="margin-top:10px"><input type="checkbox" id="withReplies"> Contar também respostas dentro dos comentários</label>
         </div>
         <div id="srcPaste" hidden>
@@ -398,11 +399,22 @@ function igMsg(m,bad){const el=$('#igStatus');el.textContent=m;el.style.color=ba
 async function api(urlOrPath){
   const tok=$('#token').value.trim(); if(!tok) throw new Error('Cole o token de acesso primeiro.');
   let url=urlOrPath.startsWith('http')?urlOrPath:API+urlOrPath+(urlOrPath.includes('?')?'&':'?')+'access_token='+encodeURIComponent(tok);
-  let r; try{r=await fetch(url)}catch(e){throw new Error('Não consegui falar com o Instagram. Abra a página pelo endereço do GitHub Pages (ou outro site), não pela pré-visualização do Claude.')}
-  const j=await r.json().catch(()=>({}));
+  let j;
+  for(let tent=0;;tent++){
+    let r; try{r=await fetch(url)}catch(e){
+      if(tent<3){await wait(5,'Conexão falhou')}else throw new Error('Não consegui falar com o Instagram. Abra a página pelo endereço do GitHub Pages (ou outro site), não pela pré-visualização do Claude.');
+      continue}
+    j=await r.json().catch(()=>({}));
+    const c=j.error&&j.error.code;
+    // limite de uso ou instabilidade: espera e tenta de novo, sem perder o que já veio
+    if(j.error&&[1,2,4,17,32,613].includes(c)&&tent<6){await wait(Math.min(300,20*2**tent),'O Instagram pediu uma pausa');continue}
+    break;
+  }
   if(j.error){const c=j.error.code; throw new Error(c===190?'Token inválido ou vencido. Gere um novo no painel da Meta.':(c===10||c===200)?'O token não tem permissão para ler comentários (instagram_business_manage_comments).':'Instagram respondeu: '+j.error.message)}
   return j;
 }
+let progressTxt='';
+async function wait(s,why){for(let k=s;k>0;k--){igMsg(`${why}. Continuando em ${k}s… ${progressTxt}`);await new Promise(r=>setTimeout(r,1000))}}
 const MEDIA_FIELDS='id,caption,media_type,media_url,thumbnail_url,permalink,timestamp,comments_count';
 let mediaCache=[];
 function showPosts(items){
@@ -433,15 +445,28 @@ $('#posts').addEventListener('click',e=>{const b=e.target.closest('.post'); if(!
 async function pull(m){
   try{
     const reply=$('#withReplies').checked;
-    const f='id,text,username,timestamp'+(reply?',replies{id,text,username,timestamp}':'');
-    let next=`/${m.id}/comments?fields=${encodeURIComponent(f)}&limit=50`, out=[];
+    const base='id,text,username,timestamp,from{id,username}';
+    const f=base+(reply?`,replies{${base}}`:'');
+    let next=`/${m.id}/comments?fields=${encodeURIComponent(f)}&limit=50`, out=[], first=null, semNome=0, vazias=0, vistos=new Set();
+    const who=c=>c.username||(c.from&&c.from.username)||'';
     while(next){
+      if(vistos.has(next)) break; vistos.add(next);
+      progressTxt=`(${out.length} já puxados)`;
       igMsg(`Puxando comentários… ${out.length}${m.comments_count?' de ~'+m.comments_count:''}`);
-      const j=await api(next);
-      for(const c of j.data||[]){ if(c.username) out.push({user:norm(c.username),text:c.text||''});
-        if(reply&&c.replies) for(const r of c.replies.data||[]) if(r.username) out.push({user:norm(r.username),text:r.text||''}); }
+      const j=await api(next); if(!first) first=j;
+      const d=j.data||[];
+      vazias=d.length?0:vazias+1; if(vazias>=3) break;
+      for(const c of d){ if(who(c)) out.push({user:norm(who(c)),text:c.text||''}); else semNome++;
+        if(reply&&c.replies) for(const r of c.replies.data||[]) if(who(r)) out.push({user:norm(who(r)),text:r.text||''}); }
       next=j.paging&&j.paging.next;
     }
+    if(!out.length){
+      const bruto=JSON.stringify(first,null,1).replace(/access_token=[^&"]+/g,'access_token=…').slice(0,1200);
+      $('#diag').hidden=false; $('#diagTxt').textContent=bruto;
+      igMsg(semNome?`O Instagram mandou ${semNome} comentários, mas sem o nome de quem comentou. Veja o diagnóstico abaixo.`:'O Instagram respondeu sem comentários. Veja o diagnóstico abaixo.',true);
+      return;
+    }
+    $('#diag').hidden=true;
     $('#raw').value=out.map(c=>`${c.user}: ${c.text.replace(/\s*\n+\s*/g,' ')}`).join('\n');
     onRaw();
     igMsg(`${out.length} comentários puxados em ${new Date().toLocaleTimeString('pt-BR')}. Eles também ficam na aba “Colar manualmente” para conferência.`);

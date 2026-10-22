@@ -161,6 +161,7 @@ footer a{color:var(--link)}
 .igmark{width:22px;height:22px;border:2.5px solid currentColor;border-radius:7px;position:relative;flex:none}
 .igmark::before{content:"";position:absolute;inset:4px;border:2.5px solid currentColor;border-radius:50%}
 .igmark::after{content:"";position:absolute;width:3px;height:3px;border-radius:50%;background:currentColor;top:2px;right:2px}
+.loginErr{background:var(--bad-soft);color:var(--bad);border-radius:12px;padding:10px 13px;font-size:13.5px;font-weight:600;margin-bottom:10px;word-break:break-word}
 .acct{display:flex;flex-wrap:wrap;align-items:center;gap:10px 12px;background:var(--field);border:1px solid var(--line);border-radius:14px;padding:12px 14px;font-size:14px}
 .acct b{font-family:var(--f-mono)}
 .acct small{display:block;color:var(--muted);font-size:12px}
@@ -227,6 +228,7 @@ footer a{color:var(--link)}
           <div id="loginBox">
             <p class="hint" id="loginHint">Entre com a conta do Instagram da liga que publicou o sorteio. O acesso fica só neste navegador.</p>
             <button type="button" class="primary big igbtn" id="igLogin"><span class="igmark" aria-hidden="true"></span>Entrar com Instagram</button>
+            <div id="loginErr" class="loginErr" role="alert" hidden></div>
             <div id="acct" class="acct" hidden>
               <span class="dot" aria-hidden="true"></span><span>Conectado como <b id="acctName"></b><small id="acctExp"></small></span>
               <span class="acts"><button type="button" class="primary" id="acctPosts">Ver posts</button><button type="button" id="copyTok">Copiar token</button><button type="button" id="logout">Sair</button></span>
@@ -605,11 +607,11 @@ const ss = {get(k){try{return sessionStorage.getItem(k)}catch(e){return null}}, 
 
 function showAcct(){
   const tok=$('#token').value.trim(), user=store.get('sorteio.user')||'';
-  const logged=!!(tok&&user);
+  const logged=!!(tok&&(user||store.get('sorteio.viaLogin')==='1'));
   $('#acct').hidden=!logged; $('#igLogin').hidden=logged||!loginOn;
   $('#loginHint').hidden=logged||!loginOn;
   if(logged){
-    $('#acctName').textContent='@'+user;
+    $('#acctName').textContent=user?'@'+user:'conta do Instagram';
     const exp=+store.get('sorteio.tokExp')||0, dias=exp?Math.max(0,Math.round((exp-Date.now())/864e5)):null;
     $('#acctExp').textContent=dias!=null?`acesso válido por mais ${dias} dia${dias===1?'':'s'}`:'';
   }
@@ -624,7 +626,7 @@ $('#igLogin').addEventListener('click',()=>{
 });
 $('#logout').addEventListener('click',()=>{
   $('#token').value=''; $('#remember').checked=false;
-  ['sorteio.token','sorteio.user','sorteio.tokExp','sorteio.tokAt'].forEach(k=>store.set(k,''));
+  ['sorteio.token','sorteio.user','sorteio.tokExp','sorteio.tokAt','sorteio.viaLogin'].forEach(k=>store.set(k,''));
   mediaCache=[]; $('#posts').innerHTML=''; igMsg('Você saiu da conta.'); showAcct();
 });
 $('#copyTok').addEventListener('click',async()=>{
@@ -637,12 +639,16 @@ $('#copyTok').addEventListener('click',async()=>{
   if(!h.has('ig')&&!h.has('erro')) return;
   history.replaceState(null,'',location.pathname+location.search);
   const esperado=ss.get('sorteio.state'); ss.del('sorteio.state');
-  if(esperado&&h.get('state')!==esperado){igMsg('O login não pôde ser confirmado. Clique em Entrar com Instagram de novo.',true);return}
-  if(h.has('erro')){igMsg(h.get('erro'),true);return}
+  const falha=m=>{setSrc('ig');const b=$('#loginErr');b.textContent='Login não concluído: '+m;b.hidden=false;toast('Login não concluído')};
+  if(esperado&&h.get('state')!==esperado){falha('a confirmação de segurança não bateu. Clique em Entrar com Instagram de novo, nesta mesma aba.');return}
+  if(h.has('erro')){falha(h.get('erro'));return}
+  if(!h.get('ig')){falha('o servidor não devolveu o token.');return}
+  $('#loginErr').hidden=true; store.set('sorteio.viaLogin','1');
   $('#token').value=h.get('ig'); $('#remember').checked=true;
   store.set('sorteio.token',h.get('ig')); store.set('sorteio.user',h.get('u')||'');
   store.set('sorteio.tokExp',String(Date.now()+(+h.get('exp')||0)*1000)); store.set('sorteio.tokAt',String(Date.now()));
   setSrc('ig'); showAcct(); $('#connect').click();
+  if(!h.get('u')) api('/me?fields=username').then(j=>{if(j.username){store.set('sorteio.user',j.username);showAcct()}}).catch(()=>{});
 })();
 // renova o acesso sozinho (o Instagram permite depois de 24 h)
 (async()=>{

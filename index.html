@@ -157,6 +157,17 @@ tr:last-child td{border-bottom:0}
 footer{position:relative;z-index:1;text-align:center;color:var(--muted);font-size:12.5px;padding-bottom:28px}
 footer a{color:var(--link)}
 
+.igbtn{display:inline-flex;align-items:center;gap:12px;width:100%;justify-content:center;background:linear-gradient(100deg,var(--c5),var(--c1) 55%,var(--c2))}
+.igmark{width:22px;height:22px;border:2.5px solid currentColor;border-radius:7px;position:relative;flex:none}
+.igmark::before{content:"";position:absolute;inset:4px;border:2.5px solid currentColor;border-radius:50%}
+.igmark::after{content:"";position:absolute;width:3px;height:3px;border-radius:50%;background:currentColor;top:2px;right:2px}
+.acct{display:flex;flex-wrap:wrap;align-items:center;gap:10px 12px;background:var(--field);border:1px solid var(--line);border-radius:14px;padding:12px 14px;font-size:14px}
+.acct b{font-family:var(--f-mono)}
+.acct small{display:block;color:var(--muted);font-size:12px}
+.acct .dot{width:10px;height:10px;border-radius:50%;background:var(--ok);box-shadow:0 0 0 4px var(--ok-soft);flex:none}
+.acct .acts{display:flex;gap:8px;margin-left:auto}
+.acct .acts button{padding:6px 11px;font-size:13px}
+
 /* palco do sorteio: visual escuro fixo, para gravar a tela */
 .stage{position:fixed;inset:0;z-index:50;background:var(--stage-bg);color:var(--stage-ink);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:18px;text-align:center;overflow:hidden;
   padding:calc(24px + env(safe-area-inset-top,0px)) max(20px,env(safe-area-inset-right,0px)) calc(24px + env(safe-area-inset-bottom,0px)) max(20px,env(safe-area-inset-left,0px))}
@@ -213,13 +224,23 @@ footer a{color:var(--link)}
           <button type="button" data-src="paste" aria-pressed="false">Colar manualmente</button>
         </div>
         <div id="srcIg">
-          <p class="hint">Use o token de acesso da conta da liga. Ele fica só neste navegador.</p>
-          <div class="row" style="margin-top:0">
+          <div id="loginBox">
+            <p class="hint" id="loginHint">Entre com a conta do Instagram da liga que publicou o sorteio. O acesso fica só neste navegador.</p>
+            <button type="button" class="primary big igbtn" id="igLogin"><span class="igmark" aria-hidden="true"></span>Entrar com Instagram</button>
+            <div id="acct" class="acct" hidden>
+              <span class="dot" aria-hidden="true"></span><span>Conectado como <b id="acctName"></b><small id="acctExp"></small></span>
+              <span class="acts"><button type="button" class="primary" id="acctPosts">Ver posts</button><button type="button" id="copyTok">Copiar token</button><button type="button" id="logout">Sair</button></span>
+            </div>
+          </div>
+          <details id="manualTok" style="margin-top:14px">
+          <summary>Usar token manualmente</summary>
+          <div class="row" style="margin-top:10px">
             <input type="password" id="token" placeholder="Token de acesso (começa com IG…)" autocomplete="off" spellcheck="false" style="flex:1;min-width:190px;font-family:var(--f-mono);font-size:13px">
             <button type="button" id="showTok" aria-pressed="false">Mostrar</button>
             <button type="button" class="primary" id="connect">Ver posts</button>
           </div>
           <label class="check" style="margin-top:10px"><input type="checkbox" id="remember"> Lembrar o token neste computador</label>
+          </details>
           <div class="row"><input type="text" id="postLink" placeholder="ou cole o link: instagram.com/p/…" style="flex:1;min-width:190px"><button type="button" id="byLink">Puxar deste link</button></div>
           <div id="igStatus" class="why" style="margin-top:10px"></div>
           <div id="posts" class="posts"></div>
@@ -572,6 +593,71 @@ $('#showTok').addEventListener('click',e=>{const t=$('#token'),show=t.type==='pa
 $('#remember').addEventListener('change',e=>store.set('sorteio.token',e.target.checked?$('#token').value.trim():''));
 {const tk=store.get('sorteio.token'); if(tk){$('#token').value=tk;$('#remember').checked=true}
  const sv=store.get('sorteio.src'); setSrc(sv||'ig');}
+
+// ---------- Entrar com Instagram ----------
+// Preencha depois de criar o servidorzinho (veja o README):
+const LOGIN = {
+  appId: '1798711338065755',   // ID do app do Instagram (números), do painel da Meta
+  worker: 'https://sorteios-ligas.bernard-shimizu.workers.dev',  // endereço do servidorzinho
+};
+const loginOn = !!(LOGIN.appId && LOGIN.worker);
+const ss = {get(k){try{return sessionStorage.getItem(k)}catch(e){return null}}, set(k,v){try{sessionStorage.setItem(k,v)}catch(e){}}, del(k){try{sessionStorage.removeItem(k)}catch(e){}}};
+
+function showAcct(){
+  const tok=$('#token').value.trim(), user=store.get('sorteio.user')||'';
+  const logged=!!(tok&&user);
+  $('#acct').hidden=!logged; $('#igLogin').hidden=logged||!loginOn;
+  $('#loginHint').hidden=logged||!loginOn;
+  if(logged){
+    $('#acctName').textContent='@'+user;
+    const exp=+store.get('sorteio.tokExp')||0, dias=exp?Math.max(0,Math.round((exp-Date.now())/864e5)):null;
+    $('#acctExp').textContent=dias!=null?`acesso válido por mais ${dias} dia${dias===1?'':'s'}`:'';
+  }
+  if(!loginOn) $('#manualTok').open=true;
+}
+$('#igLogin').addEventListener('click',()=>{
+  const st=Array.from(crypto.getRandomValues(new Uint8Array(12)),b=>b.toString(16).padStart(2,'0')).join('');
+  ss.set('sorteio.state',st);
+  location.href='https://www.instagram.com/oauth/authorize?'+new URLSearchParams({
+    client_id:LOGIN.appId, redirect_uri:LOGIN.worker.replace(/\/+$/,'')+'/callback', response_type:'code',
+    scope:'instagram_business_basic,instagram_business_manage_comments', state:st, force_reauth:'true'});
+});
+$('#logout').addEventListener('click',()=>{
+  $('#token').value=''; $('#remember').checked=false;
+  ['sorteio.token','sorteio.user','sorteio.tokExp','sorteio.tokAt'].forEach(k=>store.set(k,''));
+  mediaCache=[]; $('#posts').innerHTML=''; igMsg('Você saiu da conta.'); showAcct();
+});
+$('#copyTok').addEventListener('click',async()=>{
+  try{await navigator.clipboard.writeText($('#token').value.trim());toast('Token copiado. Envie só para quem vai fazer o sorteio.')}
+  catch(e){$('#manualTok').open=true;$('#token').type='text';$('#token').select();toast('Selecione e copie o token no campo aberto.')}
+});
+// volta do login
+(()=>{
+  const h=new URLSearchParams(location.hash.slice(1));
+  if(!h.has('ig')&&!h.has('erro')) return;
+  history.replaceState(null,'',location.pathname+location.search);
+  const esperado=ss.get('sorteio.state'); ss.del('sorteio.state');
+  if(esperado&&h.get('state')!==esperado){igMsg('O login não pôde ser confirmado. Clique em Entrar com Instagram de novo.',true);return}
+  if(h.has('erro')){igMsg(h.get('erro'),true);return}
+  $('#token').value=h.get('ig'); $('#remember').checked=true;
+  store.set('sorteio.token',h.get('ig')); store.set('sorteio.user',h.get('u')||'');
+  store.set('sorteio.tokExp',String(Date.now()+(+h.get('exp')||0)*1000)); store.set('sorteio.tokAt',String(Date.now()));
+  setSrc('ig'); showAcct(); $('#connect').click();
+})();
+// renova o acesso sozinho (o Instagram permite depois de 24 h)
+(async()=>{
+  const tok=$('#token').value.trim(), at=+store.get('sorteio.tokAt')||0, exp=+store.get('sorteio.tokExp')||0;
+  if(!tok||!at||Date.now()-at<864e5||(exp&&Date.now()>exp)) return;
+  try{
+    const r=await fetch('https://graph.instagram.com/refresh_access_token?grant_type=ig_refresh_token&access_token='+encodeURIComponent(tok));
+    const j=await r.json(); if(!j.access_token) return;
+    $('#token').value=j.access_token;
+    if($('#remember').checked) store.set('sorteio.token',j.access_token);
+    store.set('sorteio.tokAt',String(Date.now())); store.set('sorteio.tokExp',String(Date.now()+(j.expires_in||0)*1000)); showAcct();
+  }catch(e){}
+})();
+showAcct();
+$('#acctPosts').addEventListener('click',()=>$('#connect').click());
 $('#clear').addEventListener('click',()=>{$('#raw').value='';onRaw()});
 $('#file').addEventListener('change',e=>{const f=e.target.files[0]; if(!f) return; const r=new FileReader(); r.onload=()=>{$('#raw').value=r.result;onRaw()}; r.readAsText(f)});
 

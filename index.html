@@ -1,185 +1,267 @@
-<title>Sorteio da Liga</title>
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Sorteios das Ligas</title>
 <meta name="claude:viewport-fit-sides" content="cover">
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,800&family=Figtree:wght@400;500;600&family=JetBrains+Mono:wght@400;600&display=swap">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Unbounded:wght@500;700;800&family=Manrope:wght@400;500;600;700&family=JetBrains+Mono:wght@500;700&display=swap">
 <style>
-/* Layout: duas colunas de trabalho (entrada+regras | conferência+sorteio), passos numerados porque é uma sequência real */
+/* Layout: cabeçalho com a marca (disco de roleta em degradê) sobre uma aura colorida desfocada;
+   duas colunas de vidro fosco (post + regras | conferência + sorteio); o sorteio abre um palco em tela cheia para gravar. */
 :root{
-  --bg:#F2F5F4; --surface:#FFFFFF; --ink:#13221F; --muted:#5B6B67; --line:#D5DEDB;
-  --accent:#0E7466; --accent-ink:#FFFFFF; --accent-soft:#DCEFEA;
-  --gold:#B87A00; --gold-soft:#FBEFD2;
-  --ok:#1E7A3C; --ok-soft:#DFF2E5; --bad:#B3261E; --bad-soft:#FBE3E1;
-  --f-display:"Bricolage Grotesque", "Segoe UI", system-ui, sans-serif;
-  --f-body:"Figtree", "Segoe UI", system-ui, sans-serif;
-  --f-mono:"JetBrains Mono", ui-monospace, Menlo, Consolas, monospace;
+  --bg:#FBF6FA; --ink:#1D1530; --muted:#6C6383; --line:#E7DDEB;
+  --glass:rgba(255,255,255,.74); --field:#FFFFFF; --chip:#F3ECF6;
+  --c1:#FF4D8D; --c2:#FF9248; --c3:#FFCF3A; --c4:#22C1A8; --c5:#7C6CF2;
+  --accent-ink:#FFFFFF; --link:#C02670;
+  --ok:#11875A; --ok-soft:#DDF5EA; --bad:#CC2B4E; --bad-soft:#FDE3EA;
+  --blob:.55; --shadow:0 10px 40px -18px rgba(76,30,90,.35);
+  --stage-bg:#130D1F; --stage-ink:#FFFFFF; --stage-muted:#BDB3D3;
+  --f-display:"Unbounded","Arial Rounded MT Bold","Segoe UI",system-ui,sans-serif;
+  --f-body:"Manrope","Segoe UI",system-ui,-apple-system,sans-serif;
+  --f-mono:"JetBrains Mono",ui-monospace,Menlo,Consolas,monospace;
 }
 @media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
-  --bg:#0E1513; --surface:#16201D; --ink:#E4EEEB; --muted:#93A6A1; --line:#2A3834;
-  --accent:#3FC3AD; --accent-ink:#06211C; --accent-soft:#163A33;
-  --gold:#F0B43C; --gold-soft:#3A2E12;
-  --ok:#5DD18A; --ok-soft:#173326; --bad:#FF8A80; --bad-soft:#3D1C1A; color-scheme:dark}}
+  --bg:#120D1C; --ink:#F4EEFF; --muted:#A99FC0; --line:#2E2442;
+  --glass:rgba(29,21,44,.72); --field:#170F25; --chip:#251B38;
+  --link:#FF8DB8; --ok:#4ADE9B; --ok-soft:#163327; --bad:#FF7E97; --bad-soft:#3A1724;
+  --blob:.34; --shadow:0 10px 40px -18px rgba(0,0,0,.7); color-scheme:dark}}
 :root[data-theme="dark"]{
-  --bg:#0E1513; --surface:#16201D; --ink:#E4EEEB; --muted:#93A6A1; --line:#2A3834;
-  --accent:#3FC3AD; --accent-ink:#06211C; --accent-soft:#163A33;
-  --gold:#F0B43C; --gold-soft:#3A2E12;
-  --ok:#5DD18A; --ok-soft:#173326; --bad:#FF8A80; --bad-soft:#3D1C1A; color-scheme:dark}
+  --bg:#120D1C; --ink:#F4EEFF; --muted:#A99FC0; --line:#2E2442;
+  --glass:rgba(29,21,44,.72); --field:#170F25; --chip:#251B38;
+  --link:#FF8DB8; --ok:#4ADE9B; --ok-soft:#163327; --bad:#FF7E97; --bad-soft:#3A1724;
+  --blob:.34; --shadow:0 10px 40px -18px rgba(0,0,0,.7); color-scheme:dark}
+
 *{box-sizing:border-box}
-body{background:var(--bg);color:var(--ink);font-family:var(--f-body);font-size:15px;line-height:1.5}
-.wrap{max-width:1180px;margin:0 auto;padding-block:28px 60px;padding-left:max(16px, env(safe-area-inset-left, 0px));padding-right:max(16px, env(safe-area-inset-right, 0px))}
-header{display:flex;flex-wrap:wrap;align-items:end;justify-content:space-between;gap:12px;margin-bottom:24px}
-h1{font-family:var(--f-display);font-weight:800;font-size:clamp(28px,4vw,40px);line-height:1.05;margin:0;letter-spacing:-.01em;text-wrap:balance}
-h1 span{color:var(--accent)}
-.sub{color:var(--muted);margin:6px 0 0;max-width:62ch}
-.grid{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.1fr);gap:20px;align-items:start}
-@media (max-width:860px){.grid{grid-template-columns:minmax(0,1fr)}}
+[hidden]{display:none!important}
+html{padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+body{margin:0}
+img{max-width:100%}
+body{background:var(--bg);color:var(--ink);font-family:var(--f-body);font-size:15px;line-height:1.55;-webkit-font-smoothing:antialiased}
+.aura{position:fixed;inset:0;z-index:0;pointer-events:none;overflow:hidden}
+.aura i{position:absolute;border-radius:50%;filter:blur(70px);opacity:var(--blob);animation:drift 26s ease-in-out infinite alternate}
+.aura i:nth-child(1){width:46vw;height:46vw;left:-10vw;top:-14vw;background:var(--c1)}
+.aura i:nth-child(2){width:40vw;height:40vw;right:-8vw;top:-6vw;background:var(--c3);animation-delay:-8s}
+.aura i:nth-child(3){width:38vw;height:38vw;left:30vw;top:40vh;background:var(--c4);animation-delay:-14s}
+.aura i:nth-child(4){width:34vw;height:34vw;right:-6vw;bottom:-10vw;background:var(--c5);animation-delay:-4s}
+@keyframes drift{to{transform:translate(4vw,3vw) scale(1.12)}}
+
+.wrap{position:relative;z-index:1;max-width:1180px;margin:0 auto;padding-block:28px 64px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+header{display:flex;flex-wrap:wrap;align-items:center;gap:16px 28px;justify-content:space-between;margin-bottom:28px}
+.brand{display:flex;align-items:center;gap:14px}
+.disc{width:52px;height:52px;border-radius:50%;flex:none;background:conic-gradient(from 0deg,var(--c1),var(--c2),var(--c3),var(--c4),var(--c5),var(--c1));box-shadow:var(--shadow);position:relative}
+.disc::after{content:"";position:absolute;inset:15px;border-radius:50%;background:var(--bg)}
+.disc::before{content:"";position:absolute;left:50%;top:-5px;width:0;height:0;border-left:6px solid transparent;border-right:6px solid transparent;border-top:11px solid var(--ink);transform:translateX(-50%);z-index:1}
+h1{font-family:var(--f-display);font-weight:800;font-size:clamp(24px,3.6vw,36px);line-height:1.05;margin:0;letter-spacing:-.02em;text-wrap:balance}
+.grad{background:linear-gradient(90deg,var(--c1),var(--c2) 45%,var(--c5));-webkit-background-clip:text;background-clip:text;color:transparent}
+.tagline{margin:4px 0 0;color:var(--muted);font-size:14px}
+.trust{display:flex;flex-wrap:wrap;gap:8px}
+.trust span{font-size:12.5px;font-weight:600;background:var(--glass);border:1px solid var(--line);border-radius:999px;padding:5px 12px;backdrop-filter:blur(10px)}
+
+.grid{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.08fr);gap:20px;align-items:start}
+@media (max-width:880px){.grid{grid-template-columns:minmax(0,1fr)}}
 .col{display:flex;flex-direction:column;gap:20px;min-width:0}
-section.step{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:20px;min-width:0}
-.step h2{font-family:var(--f-display);font-weight:600;font-size:19px;margin:0 0 4px;display:flex;align-items:center;gap:10px}
-.step h2 b{font-family:var(--f-mono);font-size:12px;font-weight:600;background:var(--accent-soft);color:var(--accent);border-radius:4px;padding:2px 7px}
+section.step{background:var(--glass);border:1px solid var(--line);border-radius:22px;padding:22px;min-width:0;backdrop-filter:blur(18px) saturate(1.3);-webkit-backdrop-filter:blur(18px) saturate(1.3);box-shadow:var(--shadow)}
+.step h2{font-family:var(--f-display);font-weight:700;font-size:18px;letter-spacing:-.01em;margin:0 0 6px;display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.step h2 b{display:inline-grid;place-items:center;width:28px;height:28px;border-radius:50%;font-size:13px;color:var(--accent-ink);background:linear-gradient(135deg,var(--c1),var(--c2))}
+.step:nth-of-type(2) h2 b{background:linear-gradient(135deg,var(--c2),var(--c3));color:#3A2400}
+.col:nth-child(2) .step:nth-of-type(1) h2 b{background:linear-gradient(135deg,var(--c4),var(--c5))}
+.col:nth-child(2) .step:nth-of-type(2) h2 b{background:linear-gradient(135deg,var(--c5),var(--c1))}
 .hint{color:var(--muted);font-size:13.5px;margin:0 0 14px;max-width:65ch}
-.hint code{font-family:var(--f-mono);font-size:12.5px}
-textarea,input[type=text],input[type=number],select{width:100%;font:inherit;color:var(--ink);background:var(--bg);border:1px solid var(--line);border-radius:6px;padding:9px 11px}
-textarea{font-family:var(--f-mono);font-size:13px;min-height:220px;resize:vertical;line-height:1.45}
-textarea:focus,input:focus,select:focus,button:focus-visible,a:focus-visible{outline:2px solid var(--accent);outline-offset:1px}
+.hint code{font-family:var(--f-mono);font-size:12px}
+
+textarea,input[type=text],input[type=number],input[type=password]{width:100%;font:inherit;color:var(--ink);background:var(--field);border:1px solid var(--line);border-radius:12px;padding:10px 13px;transition:border-color .15s,box-shadow .15s}
+textarea{font-family:var(--f-mono);font-size:12.5px;min-height:200px;resize:vertical;line-height:1.5}
+textarea:focus,input:focus{outline:none;border-color:var(--c1);box-shadow:0 0 0 4px color-mix(in srgb,var(--c1) 18%,transparent)}
+button:focus-visible,a:focus-visible,.seg label:has(input:focus-visible){outline:3px solid var(--c5);outline-offset:2px}
 .row{display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin-top:10px}
 .fields{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px}
 @media (max-width:520px){.fields{grid-template-columns:minmax(0,1fr)}}
 .fields .full{grid-column:1/-1}
-label.f{display:flex;flex-direction:column;gap:5px;font-size:13px;font-weight:600}
-label.f small{font-weight:400;color:var(--muted)}
-.check{display:flex;gap:8px;align-items:flex-start;font-size:14px}
-.check input{margin-top:3px;accent-color:var(--accent)}
-.seg{display:flex;border:1px solid var(--line);border-radius:6px;overflow:hidden}
-.seg label{flex:1;text-align:center;padding:8px 6px;cursor:pointer;font-weight:500;font-size:13.5px}
+label.f,div.f{display:flex;flex-direction:column;gap:6px;font-size:13px;font-weight:700}
+label.f small,div.f small{font-weight:500;color:var(--muted)}
+.check{display:flex;gap:9px;align-items:flex-start;font-size:14px;font-weight:500}
+.check input{margin-top:3px;width:16px;height:16px;accent-color:var(--c1);flex:none}
+.seg{display:flex;background:var(--chip);border-radius:12px;padding:4px;gap:4px}
+.seg label{flex:1;text-align:center;padding:8px 6px;cursor:pointer;font-weight:600;font-size:13.5px;border-radius:9px;color:var(--muted)}
 .seg input{position:absolute;opacity:0;pointer-events:none}
-.seg label:has(input:checked){background:var(--accent);color:var(--accent-ink)}
-.seg label:has(input:focus-visible){outline:2px solid var(--accent);outline-offset:-2px}
-button{font:inherit;font-weight:600;border-radius:6px;border:1px solid var(--line);background:var(--surface);color:var(--ink);padding:9px 14px;cursor:pointer}
-button:hover{border-color:var(--accent)}
-button.primary{background:var(--accent);color:var(--accent-ink);border-color:var(--accent)}
-button.primary:hover{filter:brightness(1.08)}
-button.big{font-family:var(--f-display);font-size:18px;padding:13px 22px}
-button:disabled{opacity:.45;cursor:not-allowed}
-.filelbl{font-size:13.5px;color:var(--accent);cursor:pointer;font-weight:600;text-decoration:underline;text-underline-offset:3px}
+.seg label:has(input:checked){background:var(--field);color:var(--ink);box-shadow:0 2px 8px -3px rgba(0,0,0,.2)}
+
+button{font:inherit;font-weight:700;border-radius:12px;border:1px solid var(--line);background:var(--field);color:var(--ink);padding:9px 15px;cursor:pointer;transition:transform .12s,border-color .15s,filter .15s}
+button:hover:not(:disabled){border-color:var(--c1)}
+button:active:not(:disabled){transform:translateY(1px)}
+button.primary{background:linear-gradient(100deg,var(--c1),var(--c2));color:var(--accent-ink);border-color:transparent}
+button.primary:hover:not(:disabled){filter:brightness(1.07) saturate(1.1)}
+button.big{font-family:var(--f-display);font-size:18px;letter-spacing:-.01em;padding:15px 26px;border-radius:16px;box-shadow:0 12px 30px -12px var(--c1)}
+button:disabled{opacity:.4;cursor:not-allowed}
+.filelbl{font-size:13.5px;color:var(--link);cursor:pointer;font-weight:700;text-decoration:underline;text-underline-offset:3px}
 .filelbl input{display:none}
-.stats{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px;margin-bottom:14px}
-@media (max-width:520px){.stats{grid-template-columns:repeat(2,minmax(0,1fr))}}
-.stat{border:1px solid var(--line);border-radius:8px;padding:9px 11px}
-.stat .n{font-family:var(--f-display);font-weight:800;font-size:24px;font-variant-numeric:tabular-nums;line-height:1.1}
-.stat .l{font-size:12px;color:var(--muted);text-transform:uppercase;letter-spacing:.05em}
-.stat.ok .n{color:var(--ok)} .stat.bad .n{color:var(--bad)}
-.tabs{display:flex;gap:6px;margin-bottom:10px;flex-wrap:wrap}
-.tabs button{padding:5px 11px;font-size:13px;font-weight:500}
-.tabs button[aria-pressed=true]{background:var(--ink);color:var(--bg);border-color:var(--ink)}
-.list{max-height:360px;overflow:auto;border:1px solid var(--line);border-radius:8px}
-table{width:100%;border-collapse:collapse;font-size:13.5px}
-th{position:sticky;top:0;background:var(--surface);text-align:left;font-size:11.5px;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);padding:8px 10px;border-bottom:1px solid var(--line);font-weight:600}
-td{padding:8px 10px;border-bottom:1px solid var(--line);vertical-align:top}
-tr:last-child td{border-bottom:0}
-.u{font-family:var(--f-mono);font-weight:600;font-size:13px;word-break:break-all}
-.pill{display:inline-block;font-size:11.5px;font-weight:600;border-radius:999px;padding:2px 8px;white-space:nowrap}
-.pill.ok{background:var(--ok-soft);color:var(--ok)} .pill.bad{background:var(--bad-soft);color:var(--bad)}
-.why{color:var(--muted);font-size:12.5px;margin-top:2px}
-.tags{font-family:var(--f-mono);font-size:12px;color:var(--muted);word-break:break-all}
-.num{font-variant-numeric:tabular-nums;text-align:right}
-.drum{border:2px dashed var(--line);border-radius:10px;padding:22px;text-align:center;margin-bottom:14px;min-height:96px;display:flex;align-items:center;justify-content:center;flex-direction:column;gap:4px}
-.drum .name{font-family:var(--f-mono);font-weight:600;font-size:clamp(20px,3.4vw,28px);word-break:break-all}
-.drum .cap{font-size:12px;color:var(--muted);text-transform:uppercase;letter-spacing:.07em}
-.drum.spin .name{color:var(--muted)}
-.drum.hit{border-color:var(--gold);border-style:solid;background:var(--gold-soft)}
-.drum.hit .name{color:var(--gold)}
-.winners{display:flex;flex-direction:column;gap:10px;margin-top:14px}
-.w{border:1px solid var(--line);border-radius:8px;padding:12px 14px;display:grid;grid-template-columns:auto minmax(0,1fr);gap:4px 12px}
-.w .pos{font-family:var(--f-display);font-weight:800;font-size:22px;color:var(--gold);grid-row:span 3;line-height:1.1;min-width:2ch}
-.w.out{opacity:.55}
-.w.out .pos{color:var(--muted)}
-.w.out .u{text-decoration:line-through}
-.w.okd{border-color:var(--ok)}
-.w .head{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
-.w a{color:var(--accent);font-size:13px;font-weight:600}
-.w .fol{display:flex;flex-wrap:wrap;gap:6px 14px;font-size:13px}
-.w .acts{display:flex;flex-wrap:wrap;gap:8px}
-.w .acts button{padding:5px 10px;font-size:13px}
-.empty{color:var(--muted);font-size:14px;padding:18px;text-align:center}
-.example{display:inline-block;font-size:11.5px;font-weight:600;background:var(--gold-soft);color:var(--gold);border-radius:4px;padding:2px 7px;margin-left:6px;vertical-align:middle}
-.posts{display:grid;grid-template-columns:repeat(auto-fill,minmax(110px,1fr));gap:8px;margin-top:10px;max-height:330px;overflow:auto}
-.post{display:flex;flex-direction:column;gap:4px;padding:0;text-align:left;font-weight:400;overflow:hidden}
-.post img,.post .noimg{width:100%;aspect-ratio:1;object-fit:cover;background:var(--accent-soft);display:block}
-.post span{font-size:12px;padding:0 8px 8px;color:var(--muted);display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
-.post b{font-size:12px;padding:0 8px;font-variant-numeric:tabular-nums}
-.post[aria-pressed=true]{outline:2px solid var(--accent);border-color:var(--accent)}
-.toast{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(20px + env(safe-area-inset-bottom, 0px));background:var(--ink);color:var(--bg);padding:9px 16px;border-radius:6px;font-weight:600;font-size:14px}
-.audit{font-family:var(--f-mono);font-size:12px;color:var(--muted);margin-top:10px;word-break:break-all}
-details summary{cursor:pointer;font-size:13.5px;font-weight:600;color:var(--accent)}
+
+.tabs{display:flex;gap:4px;margin-bottom:14px;flex-wrap:wrap;background:var(--chip);border-radius:12px;padding:4px;width:fit-content;max-width:100%}
+.tabs button{padding:6px 13px;font-size:13px;font-weight:600;border:0;background:transparent;color:var(--muted);border-radius:9px}
+.tabs button[aria-pressed=true]{background:var(--field);color:var(--ink);box-shadow:0 2px 8px -3px rgba(0,0,0,.2)}
+.example{font-family:var(--f-body);font-size:11px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;background:var(--c3);color:#3A2400;border-radius:999px;padding:3px 9px}
+
+.posts{display:grid;grid-template-columns:repeat(auto-fill,minmax(112px,1fr));gap:10px;margin-top:12px;max-height:340px;overflow:auto}
+.post{display:flex;flex-direction:column;gap:4px;padding:0;text-align:left;font-weight:500;overflow:hidden;border-radius:14px}
+.post img,.post .noimg{width:100%;aspect-ratio:1;object-fit:cover;display:block;background:linear-gradient(135deg,var(--c1),var(--c5))}
+.post b{font-size:12px;padding:0 9px;font-variant-numeric:tabular-nums}
+.post span{font-size:12px;padding:0 9px 9px;color:var(--muted);display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.post[aria-pressed=true]{outline:3px solid var(--c1);outline-offset:1px}
+details summary{cursor:pointer;font-size:13.5px;font-weight:700;color:var(--link)}
 details ol{margin:8px 0 0;padding-left:20px;font-size:13.5px;color:var(--muted)}
 details li{margin-bottom:4px}
-@media (prefers-reduced-motion: reduce){*{transition:none!important;animation:none!important}}
-</style>
 
+.brandkit{display:flex;align-items:center;gap:12px;flex-wrap:wrap}
+.logoPrev{width:56px;height:56px;border-radius:12px;background:var(--chip);border:1px dashed var(--line);display:grid;place-items:center;overflow:hidden;flex:none;color:var(--muted);font-size:11px}
+.logoPrev img{width:100%;height:100%;object-fit:cover}
+
+.stats{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px;margin-bottom:16px}
+@media (max-width:520px){.stats{grid-template-columns:repeat(2,minmax(0,1fr))}}
+.stat{border-radius:16px;padding:11px 13px;background:var(--field);border:1px solid var(--line);position:relative;overflow:hidden}
+.stat::before{content:"";position:absolute;inset:0 auto 0 0;width:4px;background:var(--c5)}
+.stat:nth-child(2)::before{background:var(--c4)} .stat.ok::before{background:var(--ok)} .stat:nth-child(4)::before{background:linear-gradient(var(--c1),var(--c2))}
+.stat .n{font-family:var(--f-display);font-weight:700;font-size:24px;font-variant-numeric:tabular-nums;line-height:1.15}
+.stat .l{font-size:11.5px;color:var(--muted);text-transform:uppercase;letter-spacing:.07em;font-weight:700}
+.stat.ok .n{color:var(--ok)}
+.list{max-height:360px;overflow:auto;border:1px solid var(--line);border-radius:16px;background:var(--field)}
+table{width:100%;border-collapse:collapse;font-size:13.5px}
+th{position:sticky;top:0;background:var(--field);text-align:left;font-size:11px;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);padding:10px 12px;border-bottom:1px solid var(--line);font-weight:700}
+td{padding:9px 12px;border-bottom:1px solid var(--line);vertical-align:top}
+tr:last-child td{border-bottom:0}
+.u{font-family:var(--f-mono);font-weight:700;font-size:12.5px;word-break:break-all}
+.pill{display:inline-block;font-size:11.5px;font-weight:700;border-radius:999px;padding:2px 9px;white-space:nowrap}
+.pill.ok{background:var(--ok-soft);color:var(--ok)} .pill.bad{background:var(--bad-soft);color:var(--bad)}
+.why{color:var(--muted);font-size:12.5px;margin-top:2px}
+.tags{font-family:var(--f-mono);font-size:11.5px;color:var(--muted);word-break:break-all}
+.num{font-variant-numeric:tabular-nums;text-align:right;font-weight:700}
+.empty{color:var(--muted);font-size:14px;padding:22px;text-align:center}
+
+.ready{border-radius:18px;padding:20px;margin-bottom:16px;background:linear-gradient(120deg,color-mix(in srgb,var(--c1) 16%,transparent),color-mix(in srgb,var(--c3) 16%,transparent) 50%,color-mix(in srgb,var(--c4) 16%,transparent));border:1px solid var(--line)}
+.ready .k{font-size:11.5px;text-transform:uppercase;letter-spacing:.08em;font-weight:700;color:var(--muted)}
+.ready .v{font-family:var(--f-display);font-weight:700;font-size:20px;line-height:1.25;margin-top:4px;text-wrap:balance}
+.winners{display:flex;flex-direction:column;gap:10px;margin-top:16px}
+.w{border:1px solid var(--line);border-radius:16px;padding:13px 15px;display:grid;grid-template-columns:auto minmax(0,1fr);gap:6px 14px;background:var(--field)}
+.w .pos{font-family:var(--f-display);font-weight:800;font-size:22px;grid-row:span 3;line-height:1.1;min-width:2.2ch;background:linear-gradient(135deg,var(--c1),var(--c2));-webkit-background-clip:text;background-clip:text;color:transparent}
+.w.out{opacity:.55} .w.out .pos{background:none;color:var(--muted)} .w.out .u{text-decoration:line-through}
+.w.okd{border-color:var(--ok);box-shadow:0 0 0 3px var(--ok-soft)}
+.w .head{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.w a{color:var(--link);font-size:13px;font-weight:700}
+.w .fol{display:flex;flex-wrap:wrap;gap:6px 16px;font-size:13px}
+.w .acts{display:flex;flex-wrap:wrap;gap:8px}
+.w .acts button{padding:6px 11px;font-size:13px}
+.audit{font-family:var(--f-mono);font-size:11.5px;color:var(--muted);margin-top:12px;word-break:break-word}
+footer{position:relative;z-index:1;text-align:center;color:var(--muted);font-size:12.5px;padding-bottom:28px}
+footer a{color:var(--link)}
+
+/* palco do sorteio: visual escuro fixo, para gravar a tela */
+.stage{position:fixed;inset:0;z-index:50;background:var(--stage-bg);color:var(--stage-ink);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:18px;text-align:center;overflow:hidden;
+  padding:calc(24px + env(safe-area-inset-top,0px)) max(20px,env(safe-area-inset-right,0px)) calc(24px + env(safe-area-inset-bottom,0px)) max(20px,env(safe-area-inset-left,0px))}
+.stage .glow{position:absolute;inset:-20%;z-index:0;background:
+  radial-gradient(40% 40% at 20% 25%,var(--c1),transparent 70%),
+  radial-gradient(38% 38% at 80% 20%,var(--c3),transparent 70%),
+  radial-gradient(42% 42% at 70% 80%,var(--c5),transparent 70%),
+  radial-gradient(36% 36% at 25% 80%,var(--c4),transparent 70%);opacity:.5;filter:blur(40px);animation:swirl 14s linear infinite}
+@keyframes swirl{to{transform:rotate(360deg)}}
+.stage>*:not(.glow):not(canvas){position:relative;z-index:2}
+.stage canvas{position:absolute;inset:0;width:100%;height:100%;z-index:1;pointer-events:none}
+.stage .top{display:flex;align-items:center;gap:12px;font-family:var(--f-display);font-weight:700;font-size:14px;letter-spacing:.02em}
+.stage .postimg{width:clamp(120px,22vh,220px);aspect-ratio:1;max-width:60vw;object-fit:cover;border-radius:22px;box-shadow:0 20px 60px -20px rgba(0,0,0,.8),0 0 0 4px rgba(255,255,255,.14);transform:rotate(-3deg)}
+.stage.hit .postimg{animation:tilt .6s ease-out}
+@keyframes tilt{from{transform:rotate(-12deg) scale(.9)}to{transform:rotate(-3deg) scale(1)}}
+.stage .top .disc{width:34px;height:34px}
+.stage .top .disc::after{inset:10px;background:var(--stage-bg)}
+.stage .top .disc::before{display:none}
+.stage .prize{font-family:var(--f-display);font-weight:700;font-size:clamp(18px,3vw,28px);max-width:26ch;text-wrap:balance;line-height:1.2}
+.stage .cap{font-size:13px;text-transform:uppercase;letter-spacing:.18em;font-weight:700;color:var(--stage-muted)}
+.stage .name{font-family:var(--f-display);font-weight:800;font-size:clamp(30px,8vw,92px);line-height:1.05;letter-spacing:-.03em;word-break:break-all;max-width:min(100%,14ch);min-height:1.1em;color:var(--stage-muted)}
+.stage.hit .name{color:transparent;background:linear-gradient(90deg,var(--c3),var(--c2),var(--c1));-webkit-background-clip:text;background-clip:text;animation:pop .6s cubic-bezier(.2,1.6,.4,1)}
+@keyframes pop{from{transform:scale(.7);opacity:.2}to{transform:scale(1);opacity:1}}
+.stage .meta{font-size:14px;color:var(--stage-muted);font-variant-numeric:tabular-nums}
+.stage .sbtn{display:flex;gap:10px;flex-wrap:wrap;justify-content:center;margin-top:8px}
+.stage button{background:rgba(255,255,255,.1);color:var(--stage-ink);border-color:rgba(255,255,255,.22)}
+.stage button.primary{background:linear-gradient(100deg,var(--c1),var(--c2));border-color:transparent}
+.stage>button.x{position:absolute;top:calc(14px + env(safe-area-inset-top,0px));right:max(14px,env(safe-area-inset-right,0px));z-index:3;padding:7px 12px}
+
+.toast{position:fixed;z-index:60;left:50%;transform:translateX(-50%);bottom:calc(20px + env(safe-area-inset-bottom,0px));background:var(--ink);color:var(--bg);padding:10px 18px;border-radius:12px;font-weight:700;font-size:14px;box-shadow:var(--shadow)}
+@media (prefers-reduced-motion: reduce){*{animation:none!important;transition:none!important}}
+</style>
+</head>
+<body>
+<div class="aura" aria-hidden="true"><i></i><i></i><i></i><i></i></div>
 <div class="wrap">
   <header>
-    <div>
-      <h1>Sorteio <span>da Liga</span></h1>
-      <p class="sub">Cole os comentários do post, defina as regras e sorteie só entre quem participou certo. Tudo roda no seu navegador; nada é enviado a lugar nenhum.</p>
+    <div class="brand">
+      <div class="disc" aria-hidden="true"></div>
+      <div>
+        <h1>Sorteios das <span class="grad">Ligas</span></h1>
+        <p class="tagline">Sorteio de comentários do Instagram para ligas acadêmicas.</p>
+      </div>
     </div>
+    <div class="trust"><span>Regras conferidas uma a uma</span><span>Sorteio criptográfico</span><span>Nada sai do seu navegador</span></div>
   </header>
 
   <div class="grid">
     <div class="col">
       <section class="step" aria-labelledby="s1">
-        <h2 id="s1"><b>1</b> Comentários do post <span class="example" id="exTag">exemplo</span></h2>
+        <h2 id="s1"><b>1</b> Post do sorteio <span class="example" id="exTag">exemplo</span></h2>
         <div class="tabs" role="group" aria-label="Origem dos comentários">
           <button type="button" data-src="ig" aria-pressed="true">Puxar do Instagram</button>
           <button type="button" data-src="paste" aria-pressed="false">Colar manualmente</button>
         </div>
         <div id="srcIg">
-          <p class="hint">Use o token de acesso da conta da liga (o guia explica como gerar uma vez). Ele fica só neste navegador.</p>
+          <p class="hint">Use o token de acesso da conta da liga. Ele fica só neste navegador.</p>
           <div class="row" style="margin-top:0">
-            <input type="password" id="token" placeholder="Cole o token de acesso (começa com IG…)" autocomplete="off" spellcheck="false" style="flex:1;min-width:200px;font-family:var(--f-mono);font-size:13px">
+            <input type="password" id="token" placeholder="Token de acesso (começa com IG…)" autocomplete="off" spellcheck="false" style="flex:1;min-width:190px;font-family:var(--f-mono);font-size:13px">
             <button type="button" id="showTok" aria-pressed="false">Mostrar</button>
             <button type="button" class="primary" id="connect">Ver posts</button>
           </div>
-          <label class="check" style="margin-top:8px"><input type="checkbox" id="remember"> Lembrar o token neste computador</label>
-          <div class="row"><input type="text" id="postLink" placeholder="ou cole o link do post: instagram.com/p/…" style="flex:1;min-width:200px"><button type="button" id="byLink">Puxar deste link</button></div>
+          <label class="check" style="margin-top:10px"><input type="checkbox" id="remember"> Lembrar o token neste computador</label>
+          <div class="row"><input type="text" id="postLink" placeholder="ou cole o link: instagram.com/p/…" style="flex:1;min-width:190px"><button type="button" id="byLink">Puxar deste link</button></div>
           <div id="igStatus" class="why" style="margin-top:10px"></div>
           <div id="posts" class="posts"></div>
-          <div id="diag" hidden style="margin-top:10px"><div class="why">Diagnóstico (resposta do Instagram, sem o token):</div><pre id="diagTxt" style="font-family:var(--f-mono);font-size:11.5px;background:var(--bg);border:1px solid var(--line);border-radius:6px;padding:8px;max-height:180px;overflow:auto;white-space:pre-wrap;word-break:break-all;margin:4px 0 0"></pre></div>
-          <label class="check" style="margin-top:10px"><input type="checkbox" id="withReplies"> Contar também respostas dentro dos comentários</label>
+          <div id="diag" hidden style="margin-top:10px"><div class="why">Diagnóstico (resposta do Instagram, sem o token):</div><pre id="diagTxt" style="font-family:var(--f-mono);font-size:11.5px;background:var(--field);border:1px solid var(--line);border-radius:10px;padding:8px;max-height:180px;overflow:auto;white-space:pre-wrap;word-break:break-all;margin:4px 0 0"></pre></div>
+          <label class="check" style="margin-top:12px"><input type="checkbox" id="withReplies"> Contar também respostas dentro dos comentários</label>
         </div>
         <div id="srcPaste" hidden>
-        <p class="hint">Cole aqui os comentários. Funciona com texto copiado direto do Instagram, com uma linha por comentário (<code>usuario: texto @amigo @amiga</code>) ou com CSV de extensões que exportam comentários (colunas de usuário e texto).</p>
-        <textarea id="raw" spellcheck="false" aria-label="Comentários colados"></textarea>
-        <div class="row">
-          <label class="filelbl">Importar arquivo CSV/TXT<input type="file" id="file" accept=".csv,.txt,.tsv,.json"></label>
-          <button type="button" id="clear">Limpar</button>
-        </div>
-        <details style="margin-top:12px">
-          <summary>Como tirar os comentários do Instagram</summary>
-          <ol>
-            <li>Abra o post no computador (instagram.com) e role os comentários até o fim, clicando no “+” para carregar todos.</li>
-            <li>Selecione a área dos comentários, copie (Ctrl+C) e cole aqui. O site ignora “Responder”, “curtidas” e horários.</li>
-            <li>Post com centenas de comentários: use uma extensão de exportação de comentários do Chrome e importe o CSV.</li>
-          </ol>
-        </details>
+          <p class="hint">Cole os comentários: texto copiado do Instagram, uma linha por comentário (<code>usuario: texto @amigo</code>) ou CSV de extensões de exportação.</p>
+          <textarea id="raw" spellcheck="false" aria-label="Comentários colados"></textarea>
+          <div class="row">
+            <label class="filelbl">Importar arquivo CSV/TXT<input type="file" id="file" accept=".csv,.txt,.tsv,.json"></label>
+            <button type="button" id="clear">Limpar</button>
+          </div>
+          <details style="margin-top:12px">
+            <summary>Como tirar os comentários do Instagram</summary>
+            <ol>
+              <li>Abra o post no computador e carregue todos os comentários clicando no “+”.</li>
+              <li>Selecione a área dos comentários, copie e cole aqui. “Responder”, curtidas e horários são ignorados.</li>
+              <li>Para posts com centenas de comentários, use uma extensão de exportação e importe o CSV.</li>
+            </ol>
+          </details>
         </div>
       </section>
 
       <section class="step" aria-labelledby="s2">
         <h2 id="s2"><b>2</b> Regras</h2>
-        <p class="hint">O que o site confere sozinho: marcações e palavra obrigatória. Seguir perfis o Instagram não deixa conferir de fora, então isso é checado no ganhador, na etapa 4.</p>
+        <p class="hint">Marcações e palavra obrigatória são conferidas aqui. Seguir perfis é conferido no ganhador, na etapa 4.</p>
         <div class="fields">
+          <label class="f full">Prêmio <small>aparece na tela do sorteio</small><input type="text" id="prize" placeholder="ex.: 1 plantão na cirurgia geral"></label>
+          <div class="f full">Imagem do post <small>aparece na tela do sorteio; vem sozinha quando o post é puxado do Instagram</small>
+            <div class="brandkit"><div class="logoPrev" id="logoPrev">post</div><label class="filelbl">Escolher outra imagem<input type="file" id="logoFile" accept="image/*"></label><button type="button" id="logoClear" hidden>Remover</button></div>
+          </div>
           <label class="f">Perfil da liga <small>não pode participar</small><input type="text" id="owner" placeholder="@ligadecardio"></label>
           <label class="f">Marcações mínimas <small>pessoas diferentes por comentário</small><input type="number" id="minTags" min="0" max="20" value="2"></label>
           <label class="f full">Perfis que precisam ser seguidos <small>separe por espaço ou vírgula</small><input type="text" id="follow" placeholder="@ligadecardio @patrocinador"></label>
           <label class="check full"><input type="checkbox" id="countFollow"> Marcar esses perfis também conta como marcação</label>
           <label class="f">Palavra obrigatória <small>opcional</small><input type="text" id="keyword" placeholder="ex.: quero"></label>
-          <label class="f">Excluir usuários <small>organizadores, membros…</small><input type="text" id="exclude" placeholder="@fulano @ciclano"></label>
+          <label class="f">Excluir usuários <small>organizadores, membros</small><input type="text" id="exclude" placeholder="@fulano @ciclano"></label>
           <div class="f full">Chances de cada pessoa
             <div class="seg" role="radiogroup">
               <label><input type="radio" name="mode" value="pessoa" checked> 1 por pessoa</label>
               <label><input type="radio" name="mode" value="comentario"> 1 por comentário válido</label>
             </div>
-            <small style="font-weight:400;color:var(--muted)">Por comentário: cada comentário válido vale mais uma chance.</small>
           </div>
           <label class="check full" id="repWrap"><input type="checkbox" id="allowRepeat"> Comentários repetidos (mesmas pessoas marcadas) também valem chance extra</label>
           <label class="f">Quantos ganhadores<input type="number" id="nWin" min="1" max="50" value="1"></label>
@@ -209,7 +291,7 @@ details li{margin-bottom:4px}
 
       <section class="step" aria-labelledby="s4">
         <h2 id="s4"><b>4</b> Sorteio</h2>
-        <div class="drum" id="drum"><div class="cap" id="drumCap">Pronto para sortear</div><div class="name" id="drumName">—</div></div>
+        <div class="ready"><div class="k">Pronto para sortear</div><div class="v" id="readyTxt">—</div></div>
         <div class="row" style="margin-top:0">
           <button type="button" class="primary big" id="draw">Sortear</button>
           <button type="button" id="copy" disabled>Copiar resultado</button>
@@ -220,6 +302,21 @@ details li{margin-bottom:4px}
       </section>
     </div>
   </div>
+</div>
+<footer>Sorteios das Ligas · <a href="privacidade.html">Privacidade</a> · <a href="termos.html">Termos</a></footer>
+
+<div class="stage" id="stage" hidden role="dialog" aria-modal="true" aria-label="Sorteio">
+  <div class="glow" aria-hidden="true"></div>
+  <canvas id="confetti" aria-hidden="true"></canvas>
+  <button type="button" class="x" id="stageClose">Fechar</button>
+  <div class="top"><div class="disc" aria-hidden="true"></div><span>Sorteios das Ligas</span></div>
+  <img class="postimg" id="stageLogo" alt="Imagem do post do sorteio" hidden>
+  <div class="prize" id="stagePrize"></div>
+  <div class="cap" id="drumCap">Sorteando…</div>
+  <div class="name" id="drumName" aria-live="polite">—</div>
+  <div class="meta" id="stageMeta"></div>
+  <div class="sbtn" id="stageBtns" hidden><button type="button" class="primary" id="stageNext">Sortear próximo</button><button type="button" id="stageDone">Ver ganhadores</button></div>
+  <div id="drum" hidden></div>
 </div>
 <div class="toast" id="toast" hidden></div>
 
@@ -320,6 +417,8 @@ function evaluate(){
 }
 
 function render(){
+  const pz=$('#prize').value.trim();
+  $('#readyTxt').textContent=tickets.length?`${new Set(tickets).size} pessoas · ${tickets.length} chances${pz?' · '+pz:''}`:'Puxe os comentários na etapa 1';
   $('#stC').textContent=parsed.length; $('#stP').textContent=people.length;
   $('#stV').textContent=people.filter(p=>p.ok).length; $('#stT').textContent=tickets.length;
   const rows=people.filter(p=>filter==='all'||(filter==='ok'?p.ok:!p.ok));
@@ -336,26 +435,18 @@ function pickOne(){
   const pool=tickets.filter(u=>!taken.has(u));
   return pool.length?pool[rand(pool.length)]:null;
 }
-async function spin(final){
-  const drum=$('#drum'), name=$('#drumName'), cap=$('#drumCap');
-  drum.classList.remove('hit'); drum.classList.add('spin'); cap.textContent='Sorteando…';
-  const reduce=matchMedia('(prefers-reduced-motion: reduce)').matches;
-  const uniq=[...new Set(tickets)];
-  if(!reduce){ let d=40; for(let i=0;i<22;i++){ name.textContent='@'+uniq[rand(uniq.length)]; await new Promise(r=>setTimeout(r,d)); d*=1.11; } }
-  name.textContent='@'+final; drum.classList.remove('spin'); drum.classList.add('hit');
-}
 async function drawN(n){
-  if(drawing) return; drawing=true; setBtns();
+  if(drawing) return; drawing=true; setBtns(); openStage();
   for(let i=0;i<n;i++){
     const u=pickOne(); if(!u){toast('Não há mais participantes válidos para sortear.');break}
     await spin(u);
     const pos=winners.filter(w=>w.status!=='out').length+1;
     winners.push({user:u,status:'pend',checks:{},at:new Date(),pos});
-    $('#drumCap').textContent=`${pos}º sorteado`;
+    $('#drumCap').textContent=`${pos}º ganhador`;
     renderWinners();
-    if(i<n-1) await new Promise(r=>setTimeout(r,700));
+    if(i<n-1) await new Promise(r=>setTimeout(r,2600));
   }
-  drawing=false; setBtns();
+  drawing=false; setBtns(); $('#stageBtns').hidden=false; $('#stageNext').hidden=!pickOne();
 }
 function renderWinners(){
   const follow=list($('#follow').value);
@@ -470,6 +561,7 @@ async function pull(m){
       return;
     }
     $('#diag').hidden=true;
+    {const im=m.media_type==='VIDEO'?m.thumbnail_url:m.media_url; if(im) setPostImg(im);}
     $('#raw').value=out.map(c=>`${c.user}: ${c.text.replace(/\s*\n+\s*/g,' ')}`).join('\n');
     onRaw();
     igMsg(`${out.length} comentários puxados em ${new Date().toLocaleTimeString('pt-BR')}. Eles também ficam na aba “Colar manualmente” para conferência.`);
@@ -484,11 +576,66 @@ $('#file').addEventListener('change',e=>{const f=e.target.files[0]; if(!f) retur
 
 let t; function onRaw(){clearTimeout(t);t=setTimeout(()=>{parsed=parse($('#raw').value);$('#exTag').hidden=$('#raw').value!==SAMPLE;store.set('sorteio.raw',$('#raw').value);if(winners.length&&!drawing){winners=[];}evaluate()},200)}
 $('#raw').addEventListener('input',onRaw);
-const ids=['owner','minTags','follow','countFollow','allowRepeat','keyword','exclude','nWin'];
+const ids=['prize','owner','minTags','follow','countFollow','allowRepeat','keyword','exclude','nWin'];
 ids.forEach(id=>{const el=$('#'+id); el.addEventListener(el.type==='checkbox'?'change':'input',()=>{store.set('sorteio.'+id,el.type==='checkbox'?el.checked:el.value);evaluate()})});
 document.querySelectorAll('input[name=mode]').forEach(r=>r.addEventListener('change',()=>{store.set('sorteio.mode',r.value);evaluate()}));
 
 let t2; function toast(m){const el=$('#toast');el.textContent=m;el.hidden=false;clearTimeout(t2);t2=setTimeout(()=>el.hidden=true,2400)}
+
+
+// ---------- palco do sorteio, imagem do post e confete ----------
+const reduceMotion=()=>matchMedia('(prefers-reduced-motion: reduce)').matches;
+let postImg=store.get('sorteio.postimg')||'';
+function setPostImg(src,save=true){
+  postImg=src||'';
+  if(save){try{localStorage.setItem('sorteio.postimg',postImg)}catch(e){}}
+  const prev=$('#logoPrev'), st=$('#stageLogo');
+  prev.innerHTML=postImg?`<img src="${esc(postImg)}" alt="">`:'post';
+  st.hidden=!postImg; if(postImg) st.src=postImg; else st.removeAttribute('src');
+  $('#logoClear').hidden=!postImg;
+}
+$('#logoFile').addEventListener('change',e=>{const f=e.target.files[0]; if(!f) return;
+  const r=new FileReader(); r.onload=()=>{
+    // reduz a imagem para caber no navegador
+    const im=new Image(); im.onload=()=>{const c=document.createElement('canvas'),s=Math.min(1,600/Math.max(im.width,im.height));c.width=im.width*s;c.height=im.height*s;c.getContext('2d').drawImage(im,0,0,c.width,c.height);setPostImg(c.toDataURL('image/jpeg',.85))}; im.src=r.result};
+  r.readAsDataURL(f)});
+$('#logoClear').addEventListener('click',()=>setPostImg(''));
+
+function openStage(){
+  const st=$('#stage'); st.hidden=false; st.classList.remove('hit'); $('#stageBtns').hidden=true;
+  $('#stagePrize').textContent=$('#prize').value.trim();
+  $('#stageMeta').textContent=`${new Set(tickets).size} pessoas válidas · ${tickets.length} chances`;
+  document.body.style.overflow='hidden';
+}
+function closeStage(){ if(drawing) return; $('#stage').hidden=true; document.body.style.overflow=''; stopConfetti(); $('#s4').scrollIntoView({behavior:reduceMotion()?'auto':'smooth',block:'start'}) }
+$('#stageClose').addEventListener('click',closeStage);
+$('#stageDone').addEventListener('click',closeStage);
+$('#stageNext').addEventListener('click',()=>{ if(!drawing) drawN(1) });
+document.addEventListener('keydown',e=>{ if(e.key==='Escape'&&!$('#stage').hidden) closeStage() });
+
+let confettiRAF=null;
+function stopConfetti(){ if(confettiRAF) cancelAnimationFrame(confettiRAF); confettiRAF=null; const c=$('#confetti'); c.getContext('2d').clearRect(0,0,c.width,c.height) }
+function confetti(){
+  if(reduceMotion()) return; stopConfetti();
+  const c=$('#confetti'), ctx=c.getContext('2d'), dpr=Math.min(2,devicePixelRatio||1);
+  c.width=innerWidth*dpr; c.height=innerHeight*dpr; ctx.scale(dpr,dpr);
+  const cs=getComputedStyle(document.documentElement), cols=['--c1','--c2','--c3','--c4','--c5'].map(v=>cs.getPropertyValue(v).trim());
+  const P=Array.from({length:170},()=>({x:innerWidth/2+(Math.random()-.5)*120,y:innerHeight*.45,vx:(Math.random()-.5)*16,vy:-Math.random()*15-5,r:Math.random()*Math.PI,vr:(Math.random()-.5)*.3,w:6+Math.random()*7,h:4+Math.random()*5,col:cols[Math.floor(Math.random()*cols.length)]}));
+  const t0=performance.now();
+  (function step(t){
+    ctx.clearRect(0,0,innerWidth,innerHeight);
+    for(const p of P){p.vy+=.35;p.vx*=.99;p.x+=p.vx;p.y+=p.vy;p.r+=p.vr;ctx.save();ctx.translate(p.x,p.y);ctx.rotate(p.r);ctx.fillStyle=p.col;ctx.fillRect(-p.w/2,-p.h/2,p.w,p.h);ctx.restore()}
+    if(t-t0<4200) confettiRAF=requestAnimationFrame(step); else stopConfetti();
+  })(t0);
+}
+
+async function spin(final){
+  const st=$('#stage'), name=$('#drumName'), cap=$('#drumCap');
+  st.classList.remove('hit'); cap.textContent='Sorteando…'; stopConfetti();
+  const uniq=[...new Set(tickets)];
+  if(!reduceMotion()){ let d=35; for(let i=0;i<30;i++){ name.textContent='@'+uniq[rand(uniq.length)]; await new Promise(r=>setTimeout(r,d)); d*=1.08; } }
+  name.textContent='@'+final; void st.offsetWidth; st.classList.add('hit'); confetti();
+}
 
 // estado inicial: exemplo marcado, ou o que a pessoa deixou da última vez
 const savedRaw=store.get('sorteio.raw');
@@ -498,4 +645,7 @@ ids.forEach(id=>{const v=store.get('sorteio.'+id), el=$('#'+id); if(v!=null){el.
 const m=store.get('sorteio.mode'); if(m){const r=document.querySelector(`input[name=mode][value="${m}"]`); if(r) r.checked=true}
 $('#exTag').hidden=$('#raw').value!==SAMPLE;
 parsed=parse($('#raw').value); evaluate();
+setPostImg(postImg,false);
 </script>
+</body>
+</html>

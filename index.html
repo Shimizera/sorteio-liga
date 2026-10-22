@@ -161,6 +161,9 @@ footer a{color:var(--link)}
 .igmark{width:22px;height:22px;border:2.5px solid currentColor;border-radius:7px;position:relative;flex:none}
 .igmark::before{content:"";position:absolute;inset:4px;border:2.5px solid currentColor;border-radius:50%}
 .igmark::after{content:"";position:absolute;width:3px;height:3px;border-radius:50%;background:currentColor;top:2px;right:2px}
+.loginTips{margin:12px 0 0;padding:0 0 0 18px;font-size:13px;color:var(--muted);display:flex;flex-direction:column;gap:6px}
+.loginTips b{color:var(--ink)}
+.loginTips a{color:var(--link);font-weight:700;word-break:break-word}
 .loginErr{background:var(--bad-soft);color:var(--bad);border-radius:12px;padding:10px 13px;font-size:13.5px;font-weight:600;margin-bottom:10px;word-break:break-word}
 .acct{display:flex;flex-wrap:wrap;align-items:center;gap:10px 12px;background:var(--field);border:1px solid var(--line);border-radius:14px;padding:12px 14px;font-size:14px}
 .acct b{font-family:var(--f-mono)}
@@ -228,6 +231,10 @@ footer a{color:var(--link)}
           <div id="loginBox">
             <p class="hint" id="loginHint">Entre com a conta do Instagram da liga que publicou o sorteio. O acesso fica só neste navegador.</p>
             <button type="button" class="primary big igbtn" id="igLogin"><span class="igmark" aria-hidden="true"></span>Entrar com Instagram</button>
+            <ul class="loginTips" id="loginTips">
+              <li>Entre com a <b>conta da liga</b>, não com a sua pessoal. Se o Instagram oferecer “Continuar como…”, confira o @.</li>
+              <li><b>Primeira vez?</b> Aceite o convite em <a href="https://www.instagram.com/accounts/manage_access/" target="_blank" rel="noopener">instagram.com/accounts/manage_access</a>, na aba Convites de teste. Abra pelo navegador, porque o app não mostra essa aba.</li>
+            </ul>
             <div id="loginErr" class="loginErr" role="alert" hidden></div>
             <div id="acct" class="acct" hidden>
               <span class="dot" aria-hidden="true"></span><span>Conectado como <b id="acctName"></b><small id="acctExp"></small></span>
@@ -609,7 +616,7 @@ function showAcct(){
   const tok=$('#token').value.trim(), user=store.get('sorteio.user')||'';
   const logged=!!(tok&&(user||store.get('sorteio.viaLogin')==='1'));
   $('#acct').hidden=!logged; $('#igLogin').hidden=logged||!loginOn;
-  $('#loginHint').hidden=logged||!loginOn;
+  $('#loginHint').hidden=logged||!loginOn; $('#loginTips').hidden=logged||!loginOn;
   if(logged){
     $('#acctName').textContent=user?'@'+user:'conta do Instagram';
     const exp=+store.get('sorteio.tokExp')||0, dias=exp?Math.max(0,Math.round((exp-Date.now())/864e5)):null;

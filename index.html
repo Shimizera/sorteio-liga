@@ -179,8 +179,9 @@ details li{margin-bottom:4px}
               <label><input type="radio" name="mode" value="pessoa" checked> 1 por pessoa</label>
               <label><input type="radio" name="mode" value="comentario"> 1 por comentário válido</label>
             </div>
-            <small style="font-weight:400;color:var(--muted)">Por comentário: cada comentário válido com marcações diferentes vale mais uma chance.</small>
+            <small style="font-weight:400;color:var(--muted)">Por comentário: cada comentário válido vale mais uma chance.</small>
           </div>
+          <label class="check full" id="repWrap"><input type="checkbox" id="allowRepeat"> Comentários repetidos (mesmas pessoas marcadas) também valem chance extra</label>
           <label class="f">Quantos ganhadores<input type="number" id="nWin" min="1" max="50" value="1"></label>
         </div>
       </section>
@@ -293,7 +294,8 @@ function evaluate(){
   const owner=norm($('#owner').value||''), follow=list($('#follow').value), excl=new Set(list($('#exclude').value));
   if(owner) excl.add(owner);
   const minT=Math.max(0,parseInt($('#minTags').value)||0), kw=$('#keyword').value.trim().toLowerCase();
-  const countFollow=$('#countFollow').checked, mode=document.querySelector('input[name=mode]:checked').value;
+  const countFollow=$('#countFollow').checked, mode=document.querySelector('input[name=mode]:checked').value, allowRepeat=$('#allowRepeat').checked;
+  $('#repWrap').hidden=mode==='pessoa';
   const map=new Map();
   for(const c of parsed){
     const ments=[...new Set([...(c.text.matchAll(/@([A-Za-z0-9._]{1,30})/g))].map(x=>norm(x[1])))];
@@ -308,7 +310,7 @@ function evaluate(){
     if(excl.has(p.user)) return {...p,ok:false,why:'excluído (organização)',chances:0,tags:[]};
     const good=p.comments.filter(c=>c.ok);
     const sets=new Set(good.map(c=>[...c.tags].sort().join(' ')));
-    const chances=good.length?(mode==='pessoa'?1:sets.size):0;
+    const chances=good.length?(mode==='pessoa'?1:(allowRepeat?good.length:sets.size)):0;
     const why=good.length?'':(p.comments[0].reasons.join('; '));
     const tags=[...new Set(good.flatMap(c=>c.tags))];
     return {...p,ok:!!good.length,why,chances,tags};
@@ -482,7 +484,7 @@ $('#file').addEventListener('change',e=>{const f=e.target.files[0]; if(!f) retur
 
 let t; function onRaw(){clearTimeout(t);t=setTimeout(()=>{parsed=parse($('#raw').value);$('#exTag').hidden=$('#raw').value!==SAMPLE;store.set('sorteio.raw',$('#raw').value);if(winners.length&&!drawing){winners=[];}evaluate()},200)}
 $('#raw').addEventListener('input',onRaw);
-const ids=['owner','minTags','follow','countFollow','keyword','exclude','nWin'];
+const ids=['owner','minTags','follow','countFollow','allowRepeat','keyword','exclude','nWin'];
 ids.forEach(id=>{const el=$('#'+id); el.addEventListener(el.type==='checkbox'?'change':'input',()=>{store.set('sorteio.'+id,el.type==='checkbox'?el.checked:el.value);evaluate()})});
 document.querySelectorAll('input[name=mode]').forEach(r=>r.addEventListener('change',()=>{store.set('sorteio.mode',r.value);evaluate()}));
 

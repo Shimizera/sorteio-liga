@@ -27,7 +27,7 @@ No app do Instagram: Configurações → Tipo de conta e ferramentas → mudar p
 
 O app pode ficar em modo de desenvolvimento: como só a conta da própria liga usa, não precisa passar por revisão da Meta.
 
-**Não compartilhe o token.** Quem tiver ele consegue ler e responder comentários da conta.
+**Não compartilhe o token.** Quem tiver ele consegue ler e responder comentários da conta .
 
 ### 3. Publicar no GitHub Pages
 1. Crie um repositório no GitHub (ex.: `sorteio-liga`) e envie o `index.html` (botão "Add file → Upload files").
